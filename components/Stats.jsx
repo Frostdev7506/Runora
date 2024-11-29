@@ -82,7 +82,7 @@ const Stats = () => {
 
   return (
     <LinearGradient colors={['#f5fcff', '#e0f7fa']} style={styles.container}>
-      <Animated.Text style={[styles.text, {opacity}]}>Home</Animated.Text>
+      <Animated.Text style={[styles.text, {opacity}]}>Profile</Animated.Text>
       <View style={styles.statsContainer}>
         {/* Monthly Budget Card */}
         <Animated.View

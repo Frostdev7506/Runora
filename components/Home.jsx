@@ -13,10 +13,12 @@ import {
 } from 'react-native';
 import {LinearGradient} from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import useStore from '../store/store';
 import ExpenseCard from './ExpenseCard';
 import DateTimePickerModal from '@react-native-community/datetimepicker';
 import {ScrollView} from 'react-native-gesture-handler';
+import {useNavigation} from '@react-navigation/native';
 
 const Home = () => {
   const opacity = useRef(new Animated.Value(0)).current;
@@ -37,6 +39,7 @@ const Home = () => {
     addExpense,
     loading,
   } = useStore();
+  const navigation = useNavigation();
 
   const [isModalVisible, setModalVisible] = useState(false);
   const [date, setDate] = useState(new Date());
@@ -117,9 +120,20 @@ const Home = () => {
     setExpenseAmount('');
   };
 
+  const handleSettings = () => {
+    // setModalVisible(false);
+    navigation.navigate('Settings');
+  };
+
   return (
     <LinearGradient colors={['#f5fcff', '#e0f7fa']} style={styles.container}>
-      <Animated.Text style={[styles.text, {opacity}]}>Home</Animated.Text>
+      <View style={{flexDirection: 'row'}}>
+        <Animated.Text style={[styles.text, {opacity}]}>Home</Animated.Text>
+        <TouchableOpacity style={styles.settingBtn} onPress={handleSettings}>
+          <Ionicons name="settings-outline" size={24} color="#008080" />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         scrollIndicatorInsets={{right: 1}}
         style={styles.expenseContainer}>
@@ -258,6 +272,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     margin: 10,
     marginBottom: 2,
+    color: '#008080',
+  },
+  settingBtn: {
+    fontSize: 28,
+    alignSelf: 'flex-end',
     color: '#008080',
   },
   statsContainer: {
