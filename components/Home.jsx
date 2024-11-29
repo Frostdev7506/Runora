@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import {LinearGradient} from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import useStore from '../store/store'; // Adjust the path as necessary
+import useStore from '../store/store';
+import ExpenseCard from './ExpenseCard'; // Adjust the path as necessary
 
 const Home = () => {
   const opacity = useRef(new Animated.Value(0)).current;
@@ -69,7 +70,7 @@ const Home = () => {
     return (
       total +
       (expenses[month] || []).reduce(
-        (monthTotal, expense) => monthTotal + expense,
+        (monthTotal, expense) => monthTotal + expense.amount,
         0,
       )
     );
@@ -80,9 +81,12 @@ const Home = () => {
     0,
   );
 
+  // Flatten all expenses for display
+  const allExpenses = Object.values(expenses || {}).flat();
+
   return (
     <LinearGradient colors={['#f5fcff', '#e0f7fa']} style={styles.container}>
-      <Animated.Text style={[styles.text, {opacity}]}>Home</Animated.Text>
+      <Animated.Text style={[styles.text, {opacity}]}>{'Home'}</Animated.Text>
       <View style={styles.statsContainer}>
         {/* Monthly Budget Card */}
         <Animated.View
@@ -96,20 +100,35 @@ const Home = () => {
 
         {/* Total Expenses Card */}
         <Animated.View
-          style={[styles.statCard, {opacity: cardOpacity.current[2]}]}>
+          style={[styles.statCard, {opacity: cardOpacity.current[1]}]}>
           <Icon name="shopping-cart" size={64} color="#008080" />
           <Text style={styles.statValue}>
             {symbolValue} {totalExpenses}
           </Text>
           <Text style={styles.statLabel}>Total Expenses</Text>
         </Animated.View>
+
         {/* Currency Card */}
         <Animated.View
-          style={[styles.statCard, {opacity: cardOpacity.current[3]}]}>
+          style={[styles.statCard, {opacity: cardOpacity.current[2]}]}>
           <Icon name="flag" size={64} color="#008080" />
           <Text style={styles.statValue}>{currencyValue}</Text>
           <Text style={styles.statLabel}>Currency</Text>
         </Animated.View>
+      </View>
+
+      {/* Expense Cards Section */}
+      <View style={styles.expenseContainer}>
+        {allExpenses.map((expense, index) => (
+          <Animated.View
+            key={index}
+            style={[
+              styles.expenseCard,
+              {opacity: cardOpacity.current[3 + index]},
+            ]}>
+            <ExpenseCard expense={expense} />
+          </Animated.View>
+        ))}
       </View>
     </LinearGradient>
   );
@@ -155,6 +174,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#008080',
     marginLeft: 10,
+  },
+  expenseContainer: {
+    width: '100%',
+    marginTop: 20,
+  },
+  expenseCard: {
+    backgroundColor: '#ffffff',
+    padding: 16,
+    marginVertical: 5,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });
 

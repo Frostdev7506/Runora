@@ -1,5 +1,6 @@
 import {create} from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import RNFS from 'react-native-fs';
 
 const useStore = create(set => ({
   budgets: {},
@@ -8,7 +9,7 @@ const useStore = create(set => ({
   currency: 'rupees',
   region: '',
   carryOverBudget: false,
-  monthlyBudget: '', // Add monthlyBudget to the store state
+  monthlyBudget: '',
   addBudget: (month, budget) => {
     if (budget <= 0) {
       console.error('Budget must be a positive number');
@@ -37,9 +38,9 @@ const useStore = create(set => ({
   getBudget: month => {
     return useStore.getState().budgets[month];
   },
-  addExpense: (month, expense) => {
-    if (expense <= 0) {
-      console.error('Expense must be a positive number');
+  addExpense: (month, expenseObject) => {
+    if (expenseObject.amount <= 0) {
+      console.error('Expense amount must be a positive number');
       return;
     }
     set(state => {
@@ -47,7 +48,7 @@ const useStore = create(set => ({
       if (!newExpenses[month]) {
         newExpenses[month] = [];
       }
-      newExpenses[month].push(expense);
+      newExpenses[month].push(expenseObject);
       return {expenses: newExpenses};
     });
   },
@@ -59,7 +60,7 @@ const useStore = create(set => ({
   },
   getTotalExpenses: month => {
     const expenses = useStore.getState().expenses[month] || [];
-    return expenses.reduce((total, expense) => total + expense, 0);
+    return expenses.reduce((total, expense) => total + expense.amount, 0);
   },
   resetBudgets: () => {
     set({budgets: {}, expenses: {}});
@@ -108,6 +109,17 @@ const useStore = create(set => ({
       await AsyncStorage.setItem('@budgetAppData', JSON.stringify(data));
     } catch (error) {
       console.error('Failed to save data to storage', error);
+    }
+  },
+  exportData: async () => {
+    try {
+      const state = useStore.getState();
+      const jsonData = JSON.stringify(state);
+      const filePath = `${RNFS.DocumentDirectoryPath}/budget_backup.json`;
+      await RNFS.writeFile(filePath, jsonData, 'utf8');
+      console.log(`Data exported successfully to ${filePath}`);
+    } catch (error) {
+      console.error('Error exporting data:', error);
     }
   },
 }));
