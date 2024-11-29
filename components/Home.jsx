@@ -127,7 +127,9 @@ const Home = () => {
 
   return (
     <LinearGradient colors={['#f5fcff', '#e0f7fa']} style={styles.container}>
-      <View style={{flexDirection: 'row'}}>
+      <View style={styles.headerStyles}>
+        <Animated.Text style={[styles.text, {opacity}]}></Animated.Text>
+
         <Animated.Text style={[styles.text, {opacity}]}>Home</Animated.Text>
         <TouchableOpacity style={styles.settingBtn} onPress={handleSettings}>
           <Ionicons name="settings-outline" size={24} color="#008080" />
@@ -258,6 +260,13 @@ const Home = () => {
 };
 
 const styles = StyleSheet.create({
+  headerStyles: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+
   container: {
     flex: 1,
     justifyContent: 'flex-start',
