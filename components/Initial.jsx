@@ -1,10 +1,36 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {View, Text, Animated, StyleSheet, Alert} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useNavigation} from '@react-navigation/native';
+import useStore from '../store/store.js';
+import Questionnaire from '../components/Questionnaire';
 
 const Initial = () => {
   const [fadeAnim] = useState(new Animated.Value(0)); // Initial value for opacity: 0
+  const loopCount = useRef(0); // To keep track of the number of loops
+  const navigation = useNavigation();
+  const {loadFromStorage, currency, region, carryOverBudget} = useStore();
 
   useEffect(() => {
+    const checkFirstTime = async () => {
+      try {
+        const isFirstTime = await AsyncStorage.getItem('@isFirstTime');
+        if (isFirstTime) {
+          // Load data from storage
+          await loadFromStorage();
+          // Navigate to Home screen
+          navigation.replace('Home');
+        } else {
+          // Mark the app as not first time
+          await AsyncStorage.setItem('@isFirstTime', 'true');
+        }
+      } catch (error) {
+        console.error('Failed to check first time', error);
+      }
+    };
+
+    checkFirstTime();
+
     Alert.alert('Hello', 'Welcome to Runora');
 
     const animation = Animated.loop(
@@ -20,16 +46,32 @@ const Initial = () => {
           useNativeDriver: true, // Use native driver for better performance
         }),
       ]),
-      {iterations: -1}, // Infinite loop
+      {
+        iterations: -1, // Infinite loop
+        resetBeforeIteration: true, // Reset the animation before each iteration
+      },
     );
+
+    const animationListener = fadeAnim.addListener(({value}) => {
+      if (value === 0) {
+        loopCount.current += 1;
+        if (loopCount.current >= 3) {
+          // Stop the animation after 3 loops and navigate to Questionnaire
+          animation.stop();
+          fadeAnim.removeListener(animationListener);
+          navigation.replace('Questionnaire');
+        }
+      }
+    });
 
     animation.start();
 
     // Cleanup the animation on unmount
     return () => {
       animation.stop();
+      fadeAnim.removeListener(animationListener);
     };
-  }, [fadeAnim]);
+  }, [fadeAnim, navigation, loadFromStorage]);
 
   return (
     <View style={styles.container}>
