@@ -11,7 +11,7 @@ import {LinearGradient} from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import useStore from '../store/store'; // Adjust the path as necessary
 
-const Home = () => {
+const Stats = () => {
   const opacity = useRef(new Animated.Value(0)).current;
   const cardOpacity = useRef(
     Array(5)
@@ -87,17 +87,25 @@ const Home = () => {
         {/* Monthly Budget Card */}
         <Animated.View
           style={[styles.statCard, {opacity: cardOpacity.current[0]}]}>
-          <Icon name="bank" size={64} color="#008080" type="solid" />
+          <Icon name="bank" size={44} color="#008080" type="solid" />
           <Text style={styles.statValue}>
             {symbolValue} {monthlyBudgetValue}
           </Text>
           <Text style={styles.statLabel}>Monthly Budget</Text>
         </Animated.View>
-
+        {/* Total Budget Card */}
+        <Animated.View
+          style={[styles.statCard, {opacity: cardOpacity.current[1]}]}>
+          <Icon name="money" size={44} color="#008080" />
+          <Text style={styles.statValue}>
+            {symbolValue} {totalBudget}
+          </Text>
+          <Text style={styles.statLabel}>Total Budget</Text>
+        </Animated.View>
         {/* Total Expenses Card */}
         <Animated.View
           style={[styles.statCard, {opacity: cardOpacity.current[2]}]}>
-          <Icon name="shopping-cart" size={64} color="#008080" />
+          <Icon name="shopping-cart" size={44} color="#008080" />
           <Text style={styles.statValue}>
             {symbolValue} {totalExpenses}
           </Text>
@@ -106,9 +114,16 @@ const Home = () => {
         {/* Currency Card */}
         <Animated.View
           style={[styles.statCard, {opacity: cardOpacity.current[3]}]}>
-          <Icon name="flag" size={64} color="#008080" />
+          <Icon name="flag" size={44} color="#008080" />
           <Text style={styles.statValue}>{currencyValue}</Text>
           <Text style={styles.statLabel}>Currency</Text>
+        </Animated.View>
+        {/* Region Card */}
+        <Animated.View
+          style={[styles.statCard, {opacity: cardOpacity.current[4]}]}>
+          <Icon name="globe" size={44} color="#008080" />
+          <Text style={styles.statValue}>{regionValue}</Text>
+          <Text style={styles.statLabel}>Region</Text>
         </Animated.View>
       </View>
     </LinearGradient>
@@ -158,4 +173,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Home;
+export default Stats;
