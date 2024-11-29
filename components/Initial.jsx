@@ -31,8 +31,6 @@ const Initial = () => {
 
     checkFirstTime();
 
-    Alert.alert('Hello', 'Welcome to Runora');
-
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(fadeAnim, {

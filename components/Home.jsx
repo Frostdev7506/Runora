@@ -1,4 +1,4 @@
-import React, {useEffect, useRef} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,17 @@ import {
   Animated,
   Easing,
   Dimensions,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+  Platform,
 } from 'react-native';
 import {LinearGradient} from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import useStore from '../store/store';
-import ExpenseCard from './ExpenseCard'; // Adjust the path as necessary
+import ExpenseCard from './ExpenseCard';
+import DateTimePickerModal from '@react-native-community/datetimepicker';
+import {ScrollView} from 'react-native-gesture-handler';
 
 const Home = () => {
   const opacity = useRef(new Animated.Value(0)).current;
@@ -28,8 +34,15 @@ const Home = () => {
     region,
     monthlyBudget,
     loadFromStorage,
+    addExpense,
     loading,
   } = useStore();
+
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [date, setDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [expenseName, setExpenseName] = useState('');
+  const [expenseAmount, setExpenseAmount] = useState('');
 
   useEffect(() => {
     loadFromStorage();
@@ -84,52 +97,140 @@ const Home = () => {
   // Flatten all expenses for display
   const allExpenses = Object.values(expenses || {}).flat();
 
+  const handleAddExpense = () => {
+    const selectedDate = date.toISOString().split('T')[0];
+    addExpense(selectedDate, {
+      date: selectedDate,
+      name: expenseName,
+      amount: parseFloat(expenseAmount),
+    });
+    setModalVisible(false);
+    setExpenseName('');
+    setExpenseAmount('');
+  };
+
   return (
     <LinearGradient colors={['#f5fcff', '#e0f7fa']} style={styles.container}>
-      <Animated.Text style={[styles.text, {opacity}]}>{'Home'}</Animated.Text>
-      <View style={styles.statsContainer}>
-        {/* Monthly Budget Card */}
-        <Animated.View
-          style={[styles.statCard, {opacity: cardOpacity.current[0]}]}>
-          <Icon name="bank" size={64} color="#008080" type="solid" />
-          <Text style={styles.statValue}>
-            {symbolValue} {monthlyBudgetValue}
-          </Text>
-          <Text style={styles.statLabel}>Monthly Budget</Text>
-        </Animated.View>
-
-        {/* Total Expenses Card */}
-        <Animated.View
-          style={[styles.statCard, {opacity: cardOpacity.current[1]}]}>
-          <Icon name="shopping-cart" size={64} color="#008080" />
-          <Text style={styles.statValue}>
-            {symbolValue} {totalExpenses}
-          </Text>
-          <Text style={styles.statLabel}>Total Expenses</Text>
-        </Animated.View>
-
-        {/* Currency Card */}
-        <Animated.View
-          style={[styles.statCard, {opacity: cardOpacity.current[2]}]}>
-          <Icon name="flag" size={64} color="#008080" />
-          <Text style={styles.statValue}>{currencyValue}</Text>
-          <Text style={styles.statLabel}>Currency</Text>
-        </Animated.View>
-      </View>
-
-      {/* Expense Cards Section */}
-      <View style={styles.expenseContainer}>
-        {allExpenses.map((expense, index) => (
+      <Animated.Text style={[styles.text, {opacity}]}>Home</Animated.Text>
+      <ScrollView
+        scrollIndicatorInsets={{right: 1}}
+        style={styles.expenseContainer}>
+        <View style={styles.statsContainer}>
+          {/* Monthly Budget Card */}
           <Animated.View
-            key={index}
-            style={[
-              styles.expenseCard,
-              {opacity: cardOpacity.current[3 + index]},
-            ]}>
-            <ExpenseCard expense={expense} />
+            style={[styles.statCard, {opacity: cardOpacity.current[0]}]}>
+            <Icon name="bank" size={64} color="#008080" type="solid" />
+            <Text style={styles.statValue}>
+              {symbolValue} {monthlyBudgetValue}
+            </Text>
+            <Text style={styles.statLabel}>Monthly Budget</Text>
           </Animated.View>
-        ))}
-      </View>
+
+          {/* Total Expenses Card */}
+          <Animated.View
+            style={[styles.statCard, {opacity: cardOpacity.current[1]}]}>
+            <Icon name="shopping-cart" size={64} color="#008080" />
+            <Text style={styles.statValue}>
+              {symbolValue} {totalExpenses}
+            </Text>
+            <Text style={styles.statLabel}>Total Expenses</Text>
+          </Animated.View>
+
+          {/* Currency Card */}
+          <Animated.View
+            style={[styles.statCard, {opacity: cardOpacity.current[2]}]}>
+            <Icon name="flag" size={64} color="#008080" />
+            <Text style={styles.statValue}>{currencyValue}</Text>
+            <Text style={styles.statLabel}>Currency</Text>
+          </Animated.View>
+        </View>
+
+        {/* Expense Cards Section */}
+
+        <View style={styles.expenseContainer}>
+          {allExpenses.map((expense, index) => (
+            <Animated.View
+              key={index}
+              style={[
+                styles.expenseCard,
+                {opacity: cardOpacity.current[3 + index]},
+              ]}>
+              <ExpenseCard expense={expense} />
+            </Animated.View>
+          ))}
+        </View>
+      </ScrollView>
+
+      {/* Action Button */}
+      <TouchableOpacity
+        style={styles.addButton}
+        onPress={() => setModalVisible(true)}>
+        <Icon name="plus" size={24} color="#ffffff" />
+      </TouchableOpacity>
+
+      {/* Add Expense Modal */}
+      {isModalVisible && (
+        <Modal
+          isVisible={isModalVisible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setModalVisible(false)}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setModalVisible(false)}>
+                <Icon name="times" size={24} color="#008080" />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Add Expense</Text>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Date</Text>
+                <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+                  <View style={styles.datePickerInput}>
+                    <Text>{date.toISOString().split('T')[0]}</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Expense Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter expense name"
+                  value={expenseName}
+                  onChangeText={setExpenseName}
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Expense Amount</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter expense amount"
+                  value={expenseAmount}
+                  onChangeText={setExpenseAmount}
+                  keyboardType="numeric"
+                />
+              </View>
+              <TouchableOpacity
+                style={styles.addButtonModal}
+                onPress={handleAddExpense}>
+                <Text style={styles.addButtonText}>Add Expense</Text>
+              </TouchableOpacity>
+            </View>
+            {showDatePicker && (
+              <DateTimePickerModal
+                value={date}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, selectedDate) => {
+                  const currentDate = selectedDate || date;
+                  setShowDatePicker(Platform.OS === 'ios');
+                  setDate(currentDate);
+                }}
+              />
+            )}
+          </View>
+        </Modal>
+      )}
     </LinearGradient>
   );
 };
@@ -141,15 +242,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  scrollView: {
+    flex: 1,
+  },
   text: {
     fontSize: 28,
     textAlign: 'center',
     margin: 10,
+    marginBottom: 2,
     color: '#008080',
   },
   statsContainer: {
     width: '100%',
-    marginTop: 20,
+    marginTop: 5,
   },
   statCard: {
     backgroundColor: '#ffffff',
@@ -176,6 +281,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   expenseContainer: {
+    flex: 1,
     width: '100%',
     marginTop: 20,
   },
@@ -191,6 +297,77 @@ const styles = StyleSheet.create({
     elevation: 5,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  addButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#008080',
+    borderRadius: 30,
+    padding: 15,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#ffffff',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+    alignItems: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#008080',
+  },
+  inputContainer: {
+    width: '100%',
+    marginBottom: 10,
+    alignItems: 'flex-start',
+  },
+  inputLabel: {
+    fontSize: 16,
+    marginBottom: 5,
+    color: '#008080',
+  },
+  input: {
+    backgroundColor: '#f0f0f0',
+    padding: 10,
+    borderRadius: 8,
+    width: '100%',
+  },
+  datePickerInput: {
+    backgroundColor: '#f0f0f0',
+    padding: 10,
+    borderRadius: 8,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  datePickerText: {
+    fontSize: 16,
+    color: '#008080',
+  },
+  addButtonModal: {
+    backgroundColor: '#008080',
+    padding: 15,
+    borderRadius: 8,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addButtonText: {
+    fontSize: 18,
+    color: '#ffffff',
   },
 });
 
