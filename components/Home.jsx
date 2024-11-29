@@ -45,27 +45,31 @@ const Home = () => {
   const [expenseAmount, setExpenseAmount] = useState('');
 
   useEffect(() => {
-    loadFromStorage();
+    const initialize = async () => {
+      await loadFromStorage();
 
-    // Animate welcome text
-    Animated.timing(opacity, {
-      toValue: 1,
-      duration: 1000,
-      easing: Easing.inOut(Easing.ease),
-      useNativeDriver: true,
-    }).start(() => {
-      // Animate stats cards after welcome text animation completes
-      const cardAnimations = cardOpacity.current.map((cardOpac, index) => {
-        return Animated.timing(cardOpac, {
-          toValue: 1,
-          duration: 500,
-          delay: 100 * (index + 1),
-          useNativeDriver: true,
+      // Animate welcome tex
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 1000,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      }).start(() => {
+        // Animate stats cards after welcome text animation completes
+        const cardAnimations = cardOpacity.current.map((cardOpac, index) => {
+          return Animated.timing(cardOpac, {
+            toValue: 1,
+            duration: 500,
+            delay: 100 * (index + 1),
+            useNativeDriver: true,
+          });
         });
-      });
 
-      Animated.parallel(cardAnimations).start();
-    });
+        Animated.parallel(cardAnimations).start();
+      });
+    };
+
+    initialize();
   }, []);
 
   if (loading) {
@@ -96,8 +100,12 @@ const Home = () => {
 
   // Flatten all expenses for display
   const allExpenses = Object.values(expenses || {}).flat();
-
   const handleAddExpense = () => {
+    if (!expenseName || !expenseAmount || isNaN(expenseAmount)) {
+      alert('Please provide valid expense details');
+      return;
+    }
+
     const selectedDate = date.toISOString().split('T')[0];
     addExpense(selectedDate, {
       date: selectedDate,
@@ -126,7 +134,7 @@ const Home = () => {
             <Text style={styles.statLabel}>Monthly Budget</Text>
           </Animated.View>
 
-          {/* Total Expenses Card */}
+          {/* Total Expenses Card y*/}
           <Animated.View
             style={[styles.statCard, {opacity: cardOpacity.current[1]}]}>
             <Icon name="shopping-cart" size={64} color="#008080" />
@@ -168,7 +176,7 @@ const Home = () => {
         <Icon name="plus" size={24} color="#ffffff" />
       </TouchableOpacity>
 
-      {/* Add Expense Modal */}
+      {/* Add Expense Modal  yes*/}
       {isModalVisible && (
         <Modal
           isVisible={isModalVisible}
