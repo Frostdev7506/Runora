@@ -3,11 +3,10 @@ import {View, Text, Animated, StyleSheet, Alert} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation} from '@react-navigation/native';
 import useStore from '../store/store.js';
-import Questionnaire from '../components/Questionnaire';
 
 const Initial = () => {
-  const [fadeAnim] = useState(new Animated.Value(0)); // Initial value for opacity: 0
-  const loopCount = useRef(0); // To keep track of the number of loops
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const loopCount = useRef(0);
   const navigation = useNavigation();
   const {loadFromStorage, currency, region, carryOverBudget} = useStore();
 
@@ -21,7 +20,7 @@ const Initial = () => {
           // Navigate to Home screen
           navigation.replace('Home');
         } else {
-          // Mark the app as not first time
+          // Mark the app as  first time
           await AsyncStorage.setItem('@isFirstTime', 'true');
         }
       } catch (error) {
@@ -93,7 +92,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'powderblue',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 10, // Add some rounded corners for better appearance
+    borderRadius: 10,
   },
   text: {
     fontSize: 28,

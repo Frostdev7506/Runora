@@ -19,6 +19,8 @@ import ExpenseCard from './ExpenseCard';
 import DateTimePickerModal from '@react-native-community/datetimepicker';
 import {ScrollView} from 'react-native-gesture-handler';
 import {useNavigation} from '@react-navigation/native';
+import AnimatedTitle from './ReuseableComponents/AnimatedTitle';
+import AnimatedTouchable from './ReuseableComponents/AnimatedTouchable';
 
 const Home = () => {
   const opacity = useRef(new Animated.Value(0)).current;
@@ -129,8 +131,7 @@ const Home = () => {
     <LinearGradient colors={['#f5fcff', '#e0f7fa']} style={styles.container}>
       <View style={styles.headerStyles}>
         <Animated.Text style={[styles.text, {opacity}]}></Animated.Text>
-
-        <Animated.Text style={[styles.text, {opacity}]}>Home</Animated.Text>
+        <AnimatedTitle>Home</AnimatedTitle>
         <TouchableOpacity style={styles.settingBtn} onPress={handleSettings}>
           <Ionicons name="settings-outline" size={24} color="#008080" />
         </TouchableOpacity>
@@ -191,6 +192,10 @@ const Home = () => {
         onPress={() => setModalVisible(true)}>
         <Icon name="plus" size={24} color="#ffffff" />
       </TouchableOpacity>
+
+      <AnimatedTouchable onPress={setModalVisible} style={styles.addButton}>
+        <Icon name="plus" size={24} color="#ffffff" />
+      </AnimatedTouchable>
 
       {/* Add Expense Modal  yes*/}
       {isModalVisible && (

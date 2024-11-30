@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  Button,
   StyleSheet,
   Switch,
   Alert,
@@ -14,14 +13,15 @@ import {
 
 import {Picker} from '@react-native-picker/picker';
 import useStore from '../store/store';
-import currencyData from '../utils/currencies'; // Import the currency data
+import currencyData from '../utils/currencies';
 
 const Questionnaire = ({navigation}) => {
   const [animatedValue] = useState(new Animated.Value(1));
+  const [focusedInput, setFocusedInput] = useState(false);
 
   const handlePressIn = () => {
     Animated.timing(animatedValue, {
-      toValue: 0.9,
+      toValue: 0.95,
       duration: 100,
       easing: Easing.linear,
       useNativeDriver: true,
@@ -36,6 +36,7 @@ const Questionnaire = ({navigation}) => {
       useNativeDriver: true,
     }).start();
   };
+
   const {
     monthlyBudget,
     symbol,
@@ -122,45 +123,77 @@ const Questionnaire = ({navigation}) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome to Runora</Text>
-      <Text style={styles.label}>Monthly Budget:</Text>
-      <TextInput
-        style={styles.input}
-        keyboardType="numeric"
-        value={monthlyBudget}
-        onChangeText={setMonthlyBudget}
-        placeholder="Enter your monthly budget"
-      />
 
-      <Text style={styles.label}>Region:</Text>
-      <Picker
-        selectedValue={region}
-        style={styles.picker}
-        onValueChange={handleRegionChange}>
-        {currencyData.map(item => (
-          <Picker.Item
-            key={item.Region}
-            label={item.Region}
-            value={item.Region}
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Monthly Budget</Text>
+        <View
+          style={[
+            styles.inputWrapper,
+            focusedInput && styles.inputWrapperFocused,
+          ]}>
+          <Text style={styles.currencySymbol}>{symbol}</Text>
+          <TextInput
+            style={styles.input}
+            keyboardType="numeric"
+            value={monthlyBudget}
+            onChangeText={setMonthlyBudget}
+            placeholder="Enter monthly budget"
+            placeholderTextColor="#888"
+            onFocus={() => setFocusedInput(true)}
+            onBlur={() => setFocusedInput(false)}
           />
-        ))}
-      </Picker>
+        </View>
+      </View>
 
-      <Text style={styles.label}>
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Region</Text>
+        <View style={styles.pickerWrapper}>
+          <Picker
+            selectedValue={region}
+            style={styles.picker}
+            onValueChange={handleRegionChange}>
+            {currencyData.map(item => (
+              <Picker.Item
+                key={item.Region}
+                label={item.Region}
+                value={item.Region}
+                style={styles.pickerItem}
+              />
+            ))}
+          </Picker>
+        </View>
+      </View>
+
+      <Text style={styles.currencyText}>
         Currency: {symbol}-{currency}
       </Text>
 
       <View style={styles.switchContainer}>
-        <Text style={styles.Switchlabel}>Carry Over Unused Budget:</Text>
-        <Switch value={carryOverBudget} onValueChange={setCarryOverBudget} />
+        <Text style={styles.switchLabel}>Carry Over Unused Budget</Text>
+        <Switch
+          value={carryOverBudget}
+          onValueChange={setCarryOverBudget}
+          trackColor={{false: '#767577', true: '#008080'}}
+          thumbColor={carryOverBudget ? '#f55' : '#f4f3f4'}
+        />
       </View>
-      <TouchableOpacity
-        activeOpacity={1} // Disable default opacity change
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        style={styles.button}
-        onPress={handleSubmit}>
-        <Text style={styles.buttonText}>Submit</Text>
-      </TouchableOpacity>
+
+      <Animated.View
+        style={[
+          styles.buttonContainer,
+          {
+            transform: [{scale: animatedValue}],
+          },
+        ]}>
+        <TouchableOpacity
+          activeOpacity={1}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          onPress={handleSubmit}
+          style={styles.button}>
+          <Text style={styles.buttonText}>Submit</Text>
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 };
@@ -170,67 +203,110 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
-    backgroundColor: '#f5fcff',
+    padding: 20,
+    backgroundColor: '#f4f4f8',
   },
   title: {
-    fontSize: 32,
-    marginBottom: 20,
+    fontSize: 36,
+    fontWeight: '300',
+    marginBottom: 30,
+    color: '#008080',
     textAlign: 'center',
+  },
+  inputContainer: {
+    width: '100%',
+    marginBottom: 20,
   },
   label: {
-    fontSize: 18,
-    marginBottom: 5,
-    textAlign: 'center',
-
-    width: '100%',
+    fontSize: 16,
+    marginBottom: 8,
+    color: '#666',
+    paddingHorizontal: 10,
   },
-  Switchlabel: {
-    fontSize: 18,
-    marginVertical: 15,
-    textAlign: 'center',
-
-    width: '100%',
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  inputWrapperFocused: {
+    borderColor: '#008080',
+  },
+  currencySymbol: {
+    fontSize: 16,
+    marginLeft: 15,
+    color: '#666',
   },
   input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 20,
-    width: '100%',
+    flex: 1,
+    height: 50,
+    fontSize: 16,
     paddingHorizontal: 10,
+    color: '#333',
+  },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   picker: {
     height: 50,
     width: '100%',
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 20,
+  },
+  pickerItem: {
+    fontSize: 16,
+  },
+  currencyText: {
+    fontSize: 16,
+    marginVertical: 15,
+    color: '#666',
   },
   switchContainer: {
-    flexDirection: 'column',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-
     width: '100%',
+    paddingHorizontal: 10,
     marginBottom: 20,
   },
-  button: {
-    backgroundColor: '#008080', // Turquoise color
-    padding: 15,
-    borderRadius: 10,
-    overflow: 'hidden', // Ensure ripple effect stays within bounds
-    marginBottom: 30,
-    width: 200,
+  switchLabel: {
+    fontSize: 16,
+    color: '#666',
+  },
+  buttonContainer: {
+    width: '100%',
     alignItems: 'center',
-    elevation: 5, //for android shadow
+  },
+  button: {
+    backgroundColor: '#008080',
+    paddingVertical: 15,
+    paddingHorizontal: 50,
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
   buttonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    textAlign: 'center',
   },
-  buttonInner: {},
 });
 
 export default Questionnaire;

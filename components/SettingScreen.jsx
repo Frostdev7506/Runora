@@ -13,6 +13,12 @@ const SettingsScreen = () => {
 
   const settings = [
     {title: 'Profile', icon: 'person-circle-outline', screen: 'Stats'},
+    {
+      title: 'General Settings',
+      icon: 'pencil-outline',
+      screen: 'Questionnaire',
+    },
+
     // {
     //   title: 'Notifications',
     //   icon: 'notifications-outline',

@@ -17,15 +17,17 @@ const useStore = create((set, get) => ({
   expenses: {},
   symbol: '₹',
   currency: 'rupees',
-  region: '',
+  region: 'India',
   carryOverBudget: false,
   monthlyBudget: '',
+  remainingBalance: 0, // New state to track remaining balance
 
   // Budget Actions
   addBudget: (month, budget) => {
     if (!validatePositiveNumber(budget, 'Budget')) return;
     set(state => ({
       budgets: {...state.budgets, [month]: budget},
+      remainingBalance: calculateRemainingBalance(get),
     }));
   },
 
@@ -33,13 +35,17 @@ const useStore = create((set, get) => ({
     if (!validatePositiveNumber(budget, 'Budget')) return;
     set(state => ({
       budgets: {...state.budgets, [month]: budget},
+      remainingBalance: calculateRemainingBalance(get),
     }));
   },
 
   removeBudget: month => {
     set(state => {
       const {[month]: _, ...newBudgets} = state.budgets; // Omit the month key
-      return {budgets: newBudgets};
+      return {
+        budgets: newBudgets,
+        remainingBalance: calculateRemainingBalance(get),
+      };
     });
   },
 
@@ -57,7 +63,10 @@ const useStore = create((set, get) => ({
         newExpenses[month] = [];
       }
       newExpenses[month].push(expenseObject);
-      return {expenses: newExpenses};
+      return {
+        expenses: newExpenses,
+        remainingBalance: calculateRemainingBalance(get),
+      };
     });
 
     // Save updated state to AsyncStorage
@@ -128,5 +137,35 @@ const useStore = create((set, get) => ({
     }
   },
 }));
+
+// Helper function to calculate remaining balance
+const calculateRemainingBalance = get => {
+  const budgets = get().budgets;
+  const expenses = get().expenses;
+  const carryOverBudget = get().carryOverBudget;
+
+  if (!carryOverBudget) {
+    // Calculate remaining balance for the current month only
+    const currentMonth = new Date().toISOString().substring(0, 7);
+    const currentBudget = budgets[currentMonth] || 0;
+    const totalExpenses =
+      expenses[currentMonth]?.reduce(
+        (sum, expense) => sum + expense.amount,
+        0,
+      ) || 0;
+    return currentBudget - totalExpenses;
+  } else {
+    // Calculate cumulative budget and expenses
+    const months = Object.keys(budgets).sort();
+    let remaining = 0;
+    for (const month of months) {
+      const budget = budgets[month] || 0;
+      const monthExpenses =
+        expenses[month]?.reduce((sum, expense) => sum + expense.amount, 0) || 0;
+      remaining += budget - monthExpenses;
+    }
+    return remaining;
+  }
+};
 
 export default useStore;
