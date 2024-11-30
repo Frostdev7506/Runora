@@ -8,17 +8,30 @@ import SettingsScreen from '../components/SettingScreen';
 
 const Stack = createStackNavigator();
 
+const screens = [
+  {name: 'Initial', component: Initial},
+  {
+    name: 'Questionnaire',
+    component: Questionnaire,
+  },
+  {name: 'Home', component: Home},
+  {name: 'Stats', component: Stats},
+  {name: 'Settings', component: SettingsScreen},
+];
+
 function MyStack() {
   return (
     <Stack.Navigator
       initialRouteName="Initial"
-      screenOptions={{headerShown: false}} // Hide header for all screens
-    >
-      <Stack.Screen name="Initial" component={Initial} />
-      <Stack.Screen name="Questionnaire" component={Questionnaire} />
-      <Stack.Screen name="Home" component={Home} />
-      <Stack.Screen name="Stats" component={Stats} />
-      <Stack.Screen name="Settings" component={SettingsScreen} />
+      screenOptions={{headerShown: false}}>
+      {screens.map((screen, index) => (
+        <Stack.Screen
+          key={index}
+          name={screen.name}
+          component={screen.component}
+          options={screen.options}
+        />
+      ))}
     </Stack.Navigator>
   );
 }
