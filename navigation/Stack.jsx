@@ -1,19 +1,19 @@
-import React from 'react';
+import React, {lazy, Suspense} from 'react';
 import {createStackNavigator} from '@react-navigation/stack';
-import Initial from '../components/Initial';
-import Home from '../components/Home';
-import Questionnaire from '../components/Questionnaire';
-import Stats from '../components/Stats';
-import SettingsScreen from '../components/SettingScreen';
+import LoadingComponent from '../components/LoadingComponent';
+
+// Lazy load all components
+const Initial = lazy(() => import('../components/Initial'));
+const Home = lazy(() => import('../components/Home'));
+const Questionnaire = lazy(() => import('../components/Questionnaire'));
+const Stats = lazy(() => import('../components/Stats'));
+const SettingsScreen = lazy(() => import('../components/SettingScreen'));
 
 const Stack = createStackNavigator();
 
 const screens = [
   {name: 'Initial', component: Initial},
-  {
-    name: 'Questionnaire',
-    component: Questionnaire,
-  },
+  {name: 'Questionnaire', component: Questionnaire},
   {name: 'Home', component: Home},
   {name: 'Stats', component: Stats},
   {name: 'Settings', component: SettingsScreen},
@@ -21,18 +21,20 @@ const screens = [
 
 function MyStack() {
   return (
-    <Stack.Navigator
-      initialRouteName="Initial"
-      screenOptions={{headerShown: false}}>
-      {screens.map((screen, index) => (
-        <Stack.Screen
-          key={index}
-          name={screen.name}
-          component={screen.component}
-          options={screen.options}
-        />
-      ))}
-    </Stack.Navigator>
+    <Suspense fallback={<LoadingComponent />}>
+      <Stack.Navigator
+        initialRouteName="Initial"
+        screenOptions={{headerShown: false}}>
+        {screens.map((screen, index) => (
+          <Stack.Screen
+            key={index}
+            name={screen.name}
+            component={screen.component}
+            options={screen.options}
+          />
+        ))}
+      </Stack.Navigator>
+    </Suspense>
   );
 }
 
