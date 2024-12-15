@@ -1,79 +1,131 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Runora: Personal Budget Tracking App
 
-# Getting Started
+## Overview
 
->**Note**: Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions till "Creating a new application" step, before proceeding.
+Runora is a mobile budget tracking application built with React Native, designed to help users manage their personal finances effortlessly. Track your income, expenses, set budgets, and gain insights into your spending habits with an intuitive and user-friendly interface.
 
-## Step 1: Start the Metro Server
+## Features
 
-First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
+- **Expense Tracking**: Easily log and categorize your daily expenses
+- **Income Management**: Record and track multiple income sources
+- **Budget Planning**: Set monthly budgets for different expense categories
+- **Financial Insights**: Visualize spending patterns with interactive charts(currently in development)
+- **Multi-Currency Support**: Track expenses in multiple currencies
+- **Secure Authentication**: Protect your financial data with secure login(currently in development)
+- **Offline Mode**: Access and update your financial information without an internet connection
 
-To start Metro, run the following command from the _root_ of your React Native project:
+## Prerequisites
 
-```bash
-# using npm
-npm start
+Before you begin, ensure you have met the following requirements:
 
-# OR using Yarn
-yarn start
+- Node.js (v18 or later)
+- Jdk 17 or better 
+- npm or Yarn
+- React Native CLI
+- Android Studio (for Android development)
+- Xcode (for iOS development, Mac only)
+
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/runora.git
+   cd runora
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. Set up environment variables:
+   - Create a `.env` file in the project root
+   - Add necessary configuration variables (database connection, API keys, etc.)
+
+4. Run the application:
+   ```bash
+   # For Android
+   npx react-native run-android
+
+   # For iOS
+   npx react-native run-ios
+   ```
+
+## Technologies Used
+
+- **Frontend**: React Native
+- **State Management**: Redux
+- **Backend**: Firebase/Node.js
+- **Database**: Firestore
+- **Authentication**: Firebase Authentication
+- **Charting**: React Native Charts
+- **Styling**: Styled Components
+
+## Project Structure
+
+```
+runora/
+│
+├── src/
+│   ├── components/
+│   ├── screens/
+│   ├── navigation/
+│   ├── redux/
+│   ├── services/
+│   └── utils/
+│
+├── assets/
+│   ├── icons/
+│   └── images/
+│
+├── __tests__/
+│
+├── android/
+├── ios/
+├── .env
+├── package.json
+└── README.md
 ```
 
-## Step 2: Start your Application
+## Contributing
 
-Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
+Contributions are welcome! Please follow these steps:
 
-### For Android
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
+## Testing
+
+Run the test suite:
 ```bash
-# using npm
-npm run android
-
-# OR using Yarn
-yarn android
+npm test
+# or
+yarn test
 ```
 
-### For iOS
+## Roadmap
 
-```bash
-# using npm
-npm run ios
+- [ ] Add recurring transaction support
+- [ ] Implement advanced financial reporting
+- [ ] Create web application version
+- [ ] Add investment tracking features
 
-# OR using Yarn
-yarn ios
-```
+## License
 
-If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
+Distributed under the MIT License. See `LICENSE` for more information.
 
-This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
+## Contact
 
-## Step 3: Modifying your App
+Neeraj Butola - neerajbutola8910@gmail.com
 
-Now that you have successfully run the app, let's modify it.
+Project Link: [https://github.com/your-username/runora](https://github.com/your-username/runora)
 
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
+## Acknowledgements
 
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [Introduction to React Native](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you can't get this to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+- [React Native](https://reactnative.dev/)
+- [Redux](https://redux.js.org/)
