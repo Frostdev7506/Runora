@@ -123,7 +123,8 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 Neeraj Butola - neerajbutola8910@gmail.com
 
-Project Link: [https://github.com/your-username/runora](https://github.com/your-username/runora)
+Project Link: [https://github.com/Frostdev7506/runora](https://github.com/Frostdev7506/runora)
+Landing Page: [https://runora.netlify.app](https://runora.netlify.app)
 
 ## Acknowledgements
 
