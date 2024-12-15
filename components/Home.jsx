@@ -21,6 +21,8 @@ import {ScrollView} from 'react-native-gesture-handler';
 import {useNavigation} from '@react-navigation/native';
 import AnimatedTitle from './ReuseableComponents/AnimatedTitle';
 import AnimatedTouchable from './ReuseableComponents/AnimatedTouchable';
+import uuid from 'react-native-uuid';
+
 
 const Home = () => {
   const opacity = useRef(new Animated.Value(0)).current;
@@ -32,7 +34,7 @@ const Home = () => {
 
   const {
     budgets,
-    expenses,
+
     symbol,
     currency,
     region,
@@ -42,6 +44,16 @@ const Home = () => {
     loading,
   } = useStore();
   const navigation = useNavigation();
+
+  const expenses = useStore(state => state.expenses || []);
+  
+
+  const Fullstore = useStore(state => state || []);
+
+
+
+  console.log('Expenses:',expenses);
+  
 
   const [isModalVisible, setModalVisible] = useState(false);
   const [date, setDate] = useState(new Date());
@@ -112,7 +124,9 @@ const Home = () => {
     }
 
     const selectedDate = date.toISOString().split('T')[0];
-    addExpense(selectedDate, {
+    const selectedMonth = date.toISOString().substring(0, 7);
+
+    addExpense(selectedMonth, {
       date: selectedDate,
       name: expenseName,
       amount: parseFloat(expenseAmount),
@@ -125,6 +139,13 @@ const Home = () => {
   const handleSettings = () => {
     // setModalVisible(false);
     navigation.navigate('Settings');
+  };
+
+  const handleExpensePress = expense => {
+    navigation.navigate('EditExpense', {
+      month: currentMonth,
+      expenseId: expense.id,
+    });
   };
 
   return (

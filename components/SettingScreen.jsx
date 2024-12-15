@@ -29,12 +29,13 @@ const SettingsScreen = () => {
     // {title: 'About', icon: 'information-circle-outline', screen: 'About'},
     // {title: 'Logout', icon: 'log-out-outline', screen: 'Logout'},
   ];
-
+  
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* User Header */}
       <View style={styles.header}>
-        const navigation = useNavigation();
+        
+        
         <Text style={styles.headerText}>Settings</Text>
       </View>
 

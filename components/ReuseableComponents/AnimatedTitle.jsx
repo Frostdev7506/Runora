@@ -6,49 +6,35 @@ const AnimatedTitle = ({children}) => {
   const scaleValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Complex animation sequence
+    // Complex animation sequence (modified to run only once)
     Animated.parallel([
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(animatedValue, {
-            toValue: 1,
-            duration: 2000,
-            easing: Easing.bezier(0.4, 0.0, 0.2, 1),
-            useNativeDriver: true,
-          }),
-          Animated.timing(animatedValue, {
-            toValue: 0,
-            duration: 2000,
-            easing: Easing.bezier(0.4, 0.0, 0.2, 1),
-            useNativeDriver: true,
-          }),
-        ]),
-      ),
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(scaleValue, {
-            toValue: 1,
-            duration: 1500,
-            easing: Easing.elastic(1.2),
-            useNativeDriver: true,
-          }),
-          Animated.timing(scaleValue, {
-            toValue: 0,
-            duration: 1500,
-            easing: Easing.elastic(1.2),
-            useNativeDriver: true,
-          }),
-        ]),
-      ),
-    ]).start();
-
-    return () => {
+      Animated.timing(animatedValue, {
+        toValue: 1,
+        duration: 2000,
+        easing: Easing.bezier(0.4, 0.0, 0.2, 1),
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleValue, {
+        toValue: 1,
+        duration: 1500,
+        easing: Easing.elastic(1.2),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Optional: Reset values after animation completes
+      // This is useful if you want to trigger the animation again later
       animatedValue.setValue(0);
       scaleValue.setValue(0);
-    };
-  }, [animatedValue, scaleValue]);
+    });
 
-  // Interpolate animated values
+    // No need for a cleanup function now that the animation runs only once
+    // return () => {
+    //   animatedValue.setValue(0);
+    //   scaleValue.setValue(0);
+    // };
+  }, []); // Empty dependency array ensures this effect runs only once on mount
+
+  // Interpolate animated values (no changes needed here)
   const translateY = animatedValue.interpolate({
     inputRange: [0, 1],
     outputRange: [0, -15],

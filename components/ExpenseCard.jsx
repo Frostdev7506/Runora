@@ -1,18 +1,28 @@
 import React, {useRef, useEffect} from 'react';
 import {
   View,
+  Alert,
   Text,
   StyleSheet,
   Animated,
-  TouchableWithoutFeedback,
+  TouchableOpacity,
 } from 'react-native';
+
 import Icon from 'react-native-vector-icons/FontAwesome';
+import Ant from 'react-native-vector-icons/AntDesign';
+
+
 import LinearGradient from 'react-native-linear-gradient';
+import {useNavigation} from '@react-navigation/native';
+import useStore from '../store/store'; // Adjust path as needed
 
 const ExpenseCard = ({expense}) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const pressOpacityAnim = useRef(new Animated.Value(1)).current;
+
+  const navigation = useNavigation();
+  const deleteExpense = useStore(state => state.deleteExpense);
 
   useEffect(() => {
     Animated.timing(opacityAnim, {
@@ -50,6 +60,51 @@ const ExpenseCard = ({expense}) => {
     ]).start();
   };
 
+
+  const handleExpensePress = expense => {
+    navigation.navigate('EditExpense', {
+      ...expense,
+      month: expense.currentMonth,
+      expenseId: expense?.id,
+      date: expense.date,
+    });
+  };
+
+
+
+  const handleDelete = () => {
+    if (expense && expense.id) {
+     
+      let month = expense.date.substring(0, 7);
+
+      console.log("Month", month);
+      
+      console.log("Expense id", expense.id);
+      console.log("Expense", expense);
+      
+      
+      Alert.alert(
+        "Delete Expense",
+        "Are you sure you want to delete this expense?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel"
+          },
+          {
+            text: "Delete",
+            onPress: () => {
+              deleteExpense(month, expense.id);
+            },
+          },
+        ],
+        { cancelable: true }
+      );
+    } else {
+     console.error("Expense or Expense id not defined", expense)
+    }
+  };
+
   return (
     <Animated.View
       style={[
@@ -62,24 +117,37 @@ const ExpenseCard = ({expense}) => {
           }),
         },
       ]}>
-      <TouchableWithoutFeedback
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}>
+      <TouchableOpacity
+      activeOpacity={1}
+       onPressIn={handlePressIn} 
+       onPressOut={handlePressOut}
+       onPress={() => handleExpensePress(expense)}
+      >
         <LinearGradient colors={['#008080', '#00B4A2']} style={styles.gradient}>
-          <View style={styles.expenseRow}>
-            <Icon name="calendar" size={18} color="#ffffff" />
-            <Text style={styles.cardText}>{expense.date}</Text>
-          </View>
-          <View style={styles.expenseRow}>
-            <Icon name="tag" size={18} color="#ffffff" />
-            <Text style={styles.cardText}>{expense.name}</Text>
-          </View>
-          <View style={styles.expenseRow}>
-            <Icon name="dollar" size={18} color="#ffffff" />
-            <Text style={styles.cardText}>{expense.amount}</Text>
-          </View>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                    <View style={{ flex: 3}}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                            <Icon name="calendar" size={18} color="#ffffff" />
+                            <Text style={{ color: '#ffffff', marginLeft: 5, fontSize: 16 }}>{expense.date}</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                            <Icon name="tag" size={18} color="#ffffff" />
+                            <Text style={{ color: '#ffffff', marginLeft: 5, fontSize: 16 }}>{expense.name}</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                            <Icon name="dollar" size={18} color="#ffffff" />
+                            <Text style={{ color: '#ffffff', marginLeft: 5, fontSize: 16 }}>{String(expense.amount)}</Text>
+                        </View>
+                    </View>
+                    <View style={{ flex: 1 , alignItems: 'flex-end'}} >
+                    <TouchableOpacity onPress={handleDelete} style={{ flexDirection: 'row', alignItems: 'flex-end', marginBottom: 5 }}>
+                            <Ant name="delete" size={18} color="#ffffff" />
+
+                        </TouchableOpacity>
+                    </View>
+                </View>
         </LinearGradient>
-      </TouchableWithoutFeedback>
+      </TouchableOpacity>
     </Animated.View>
   );
 };

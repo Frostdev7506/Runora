@@ -1,6 +1,7 @@
 import {create} from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNFS from 'react-native-fs';
+import uuid from 'react-native-uuid';
 
 // Helper function to validate positive numbers
 const validatePositiveNumber = (value, type) => {
@@ -20,7 +21,7 @@ const useStore = create((set, get) => ({
   region: 'India',
   carryOverBudget: false,
   monthlyBudget: '',
-  remainingBalance: 0, // New state to track remaining balance
+  remainingBalance: 0,
 
   // Budget Actions
   addBudget: (month, budget) => {
@@ -41,7 +42,7 @@ const useStore = create((set, get) => ({
 
   removeBudget: month => {
     set(state => {
-      const {[month]: _, ...newBudgets} = state.budgets; // Omit the month key
+      const {[month]: _, ...newBudgets} = state.budgets;
       return {
         budgets: newBudgets,
         remainingBalance: calculateRemainingBalance(get),
@@ -57,6 +58,10 @@ const useStore = create((set, get) => ({
       console.error('Expense amount must be a positive number');
       return;
     }
+
+    // Add a unique ID to the expense object
+    expenseObject.id = uuid.v4();
+
     set(state => {
       const newExpenses = {...state.expenses};
       if (!newExpenses[month]) {
@@ -76,6 +81,74 @@ const useStore = create((set, get) => ({
         '@budgetAppData',
         JSON.stringify(currentState),
       );
+    } catch (error) {
+      console.error('Failed to save expense data to storage', error);
+    }
+  },
+
+  deleteExpense: async (month, expenseId) => {
+    set(state => {
+      const newExpenses = {...state.expenses};
+      if (!newExpenses[month]) {
+        return state;
+      }
+  
+      const expenseIndex = newExpenses[month].findIndex(
+        expense => expense.id === expenseId,
+      );
+      if (expenseIndex === -1) {
+        return state; // Or handle the error appropriately
+      }
+  
+      newExpenses[month].splice(expenseIndex, 1);
+  
+      // Save updated state to AsyncStorage
+      try {
+        AsyncStorage.setItem('@budgetAppData', JSON.stringify({
+          ...state,
+          expenses: newExpenses,
+          remainingBalance: calculateRemainingBalance(get),
+        }));
+      } catch (error) {
+        console.error('Failed to save expense data to storage', error);
+      }
+  
+      return {
+        expenses: newExpenses,
+        remainingBalance: calculateRemainingBalance(get),
+      };
+    });
+  },
+
+  updateExpense: async (month, expenseId, updatedExpense) => {
+    set(state => {
+      const newExpenses = {...state.expenses};
+      if (!newExpenses[month]) {
+        return state; // Or handle the error appropriately
+      }
+
+      const expenseIndex = newExpenses[month].findIndex(
+        expense => expense.id === expenseId,
+      );
+      if (expenseIndex === -1) {
+        return state; // Or handle the error appropriately
+      }
+
+      newExpenses[month][expenseIndex] = {
+        ...newExpenses[month][expenseIndex],
+        ...updatedExpense,
+      };
+
+      return {
+        expenses: newExpenses,
+        remainingBalance: calculateRemainingBalance(get),
+      };
+    });
+
+    // Save updated state to AsyncStorage
+    const currentState = get();
+    try {
+      await AsyncStorage.setItem('@budgetAppData', JSON.stringify(currentState));
     } catch (error) {
       console.error('Failed to save expense data to storage', error);
     }
