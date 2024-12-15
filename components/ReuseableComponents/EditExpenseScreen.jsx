@@ -12,7 +12,7 @@ const EditExpenseScreen = () => {
     console.log("route params", typeof amount);
 
 
-    const updateExpense = useStore(state => state.updateExpense);
+    const updateExpense = useStore(state => state.editExpense);
     const getExpenses = useStore(state => state.getExpenses);
 
     const [expenseName, setExpenseName] = useState(name || '');
@@ -23,9 +23,12 @@ const EditExpenseScreen = () => {
 
     useEffect(() => {
         const expenses = getExpenses(month);
-        console.log('Expenses:', expenses);
+        console.log('Expenses:------------', expenses);
 
         const expense = expenses.find(e => e.id === expenseId);
+
+        console.log("Selected Expense", expense);
+        
 
         if (expense) {
             // Parse the date and ensure it's valid

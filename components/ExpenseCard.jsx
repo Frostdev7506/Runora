@@ -62,9 +62,10 @@ const ExpenseCard = ({expense}) => {
 
 
   const handleExpensePress = expense => {
+    let month = expense.date.substring(0, 7);
     navigation.navigate('EditExpense', {
       ...expense,
-      month: expense.currentMonth,
+      month: month,
       expenseId: expense?.id,
       date: expense.date,
     });

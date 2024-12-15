@@ -120,6 +120,39 @@ const useStore = create((set, get) => ({
     });
   },
 
+  editExpense : async (month, expenseId, updatedExpense) => {
+    set(state => {
+      const newExpenses = {...state.expenses};
+      if (!newExpenses[month]) {
+        return state; // Or handle the error appropriately
+      }
+
+      const expenseIndex = newExpenses[month].findIndex(
+        expense => expense.id === expenseId,
+      );
+      if (expenseIndex === -1) {
+        return state; // Or handle the error appropriately
+      }
+
+      newExpenses[month][expenseIndex] = {
+        ...newExpenses[month][expenseIndex],
+        ...updatedExpense,
+      };
+
+      return {
+        expenses: newExpenses,  
+        remainingBalance: calculateRemainingBalance(get),
+      };    
+    });
+
+    // Save updated state to AsyncStorage    
+    const currentState = get();
+    try {
+      await AsyncStorage.setItem('@budgetAppData', JSON.stringify(currentState));
+    } catch (error) {
+      console.error('Failed to save expense data to storage', error);
+    }
+  },
   updateExpense: async (month, expenseId, updatedExpense) => {
     set(state => {
       const newExpenses = {...state.expenses};
