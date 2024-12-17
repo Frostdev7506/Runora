@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import useStore from '../../store/store';
 import DateTimePickerModal from '@react-native-community/datetimepicker';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 const EditExpenseScreen = () => {
     const navigation = useNavigation();
@@ -11,46 +12,43 @@ const EditExpenseScreen = () => {
 
     console.log("route params", typeof amount);
 
-
     const updateExpense = useStore(state => state.editExpense);
     const getExpenses = useStore(state => state.getExpenses);
 
     const [expenseName, setExpenseName] = useState(name || '');
     const [expenseAmount, setExpenseAmount] = useState(String(amount) || '');
-    const [date, setDate] = useState(new Date()); // Initialize with a valid Date object
+    const [date, setDate] = useState(new Date());
     const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
-
 
     useEffect(() => {
         const expenses = getExpenses(month);
-        console.log('Expenses:------------', expenses);
+         console.log('Expenses:------------', expenses);
 
         const expense = expenses.find(e => e.id === expenseId);
-
         console.log("Selected Expense", expense);
-        
+
 
         if (expense) {
-            // Parse the date and ensure it's valid
             const parsedDate = new Date(expense.date);
             if (isNaN(parsedDate.getTime())) {
                 console.error('Invalid date:', expense.date);
-                setDate(new Date()); // Fallback to current date if invalid
+                setDate(new Date());
             } else {
                 setDate(parsedDate);
                 setExpenseName(expense.name);
                 setExpenseAmount(String(expense.amount));
             }
         } else if (expenseDate) {
-            // Parse the date and ensure it's valid
             const parsedDate = new Date(expenseDate);
             if (isNaN(parsedDate.getTime())) {
-                setDate(new Date()); // Fallback to current date if invalid
+                setDate(new Date());
             } else {
                 setDate(parsedDate);
             }
         }
     }, [month, expenseId, getExpenses, expenseDate]);
+
+
 
     const showDatePicker = () => {
         setDatePickerVisibility(true);
@@ -77,6 +75,8 @@ const EditExpenseScreen = () => {
 
     return (
         <View style={styles.container}>
+             <Icon name="money" size={60} color="#008080" style={styles.icon} />
+            <Text style={styles.title}>Edit Expense</Text>
             <TextInput
                 style={styles.input}
                 placeholder="Expense Name"
@@ -91,12 +91,10 @@ const EditExpenseScreen = () => {
                 keyboardType="numeric"
             />
 
-            <TouchableOpacity onPress={showDatePicker}>
-                <View style={styles.datePickerButton}>
-                    <Text style={styles.datePickerButtonText}>
-                        {date ? date.toLocaleDateString() : 'Select Date'}
-                    </Text>
-                </View>
+           <TouchableOpacity onPress={showDatePicker} style={styles.datePickerButton}>
+                <Text style={styles.datePickerButtonText}>
+                    {date ? date.toLocaleDateString() : 'Select Date'}
+                </Text>
             </TouchableOpacity>
 
             {isDatePickerVisible && (
@@ -109,40 +107,66 @@ const EditExpenseScreen = () => {
                 />
             )}
 
-            <Button title="Update Expense" onPress={handleUpdateExpense} />
+           <TouchableOpacity style={styles.button} onPress={handleUpdateExpense}>
+                <Text style={styles.buttonText}>Update Expense</Text>
+            </TouchableOpacity>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
+     container: {
         flex: 1,
         padding: 20,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#f0f0f0',
+        alignItems: 'center',
+    },
+    icon: {
+        marginBottom: 20,
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#333',
+        marginBottom: 30,
     },
     input: {
         backgroundColor: 'white',
         borderWidth: 1,
         borderColor: '#ddd',
-        padding: 10,
-        marginBottom: 10,
-        borderRadius: 5,
-        fontSize: 16,
+        padding: 15,
+        marginBottom: 15,
+        borderRadius: 8,
+        fontSize: 18,
+        width: '90%',
     },
-    datePickerButton: {
+     datePickerButton: {
         backgroundColor: 'white',
         borderWidth: 1,
-        borderColor: '#ddd',
-        padding: 10,
-        marginBottom: 10,
-        borderRadius: 5,
+        borderColor: '#000',
+        padding: 15,
+        
+        marginBottom: 20,
+        borderRadius: 8,
         alignItems: 'center',
+        width: '90%', // Same width as text input
     },
     datePickerButtonText: {
-        fontSize: 16,
+        fontSize: 18,
         color: '#333',
     },
-    // Add more styles as needed
+    button: {
+        backgroundColor: '#008080', // Primary color
+        padding: 15,
+        borderRadius: 8,
+        marginTop: 20,
+        width: '90%',
+        alignItems: 'center'
+    },
+    buttonText: {
+        color: 'white',
+        fontSize: 18,
+    },
 });
 
 export default EditExpenseScreen;

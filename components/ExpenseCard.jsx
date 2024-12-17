@@ -1,4 +1,4 @@
-import React, {useRef, useEffect} from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   Alert,
@@ -10,58 +10,54 @@ import {
 
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Ant from 'react-native-vector-icons/AntDesign';
-
-
 import LinearGradient from 'react-native-linear-gradient';
-import {useNavigation} from '@react-navigation/native';
-import useStore from '../store/store'; // Adjust path as needed
+import { useNavigation } from '@react-navigation/native';
+import useStore from '../store/store';
 
-const ExpenseCard = ({expense}) => {
+const ExpenseCard = ({ expense }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const pressOpacityAnim = useRef(new Animated.Value(1)).current;
-
   const navigation = useNavigation();
-  const deleteExpense = useStore(state => state.deleteExpense);
+  const deleteExpense = useStore((state) => state.deleteExpense);
 
   useEffect(() => {
     Animated.timing(opacityAnim, {
       toValue: 1,
-      duration: 500,
+      duration: 400,
       useNativeDriver: true,
     }).start();
   }, []);
 
-  const handlePressIn = () => {
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 0.98,
-        useNativeDriver: true,
-      }),
-      Animated.timing(pressOpacityAnim, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
+    const handlePressIn = () => {
+        Animated.parallel([
+            Animated.spring(scaleAnim, {
+                toValue: 0.97,
+                useNativeDriver: true,
+            }),
+            Animated.timing(pressOpacityAnim, {
+                toValue: 0.95,
+                duration: 100,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    };
 
-  const handlePressOut = () => {
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-      }),
-      Animated.timing(pressOpacityAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
+    const handlePressOut = () => {
+        Animated.parallel([
+            Animated.spring(scaleAnim, {
+                toValue: 1,
+                useNativeDriver: true,
+            }),
+            Animated.timing(pressOpacityAnim, {
+                toValue: 1,
+                duration: 100,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    };
 
-
-  const handleExpensePress = expense => {
+  const handleExpensePress = (expense) => {
     let month = expense.date.substring(0, 7);
     navigation.navigate('EditExpense', {
       ...expense,
@@ -71,29 +67,19 @@ const ExpenseCard = ({expense}) => {
     });
   };
 
-
-
   const handleDelete = () => {
     if (expense && expense.id) {
-     
       let month = expense.date.substring(0, 7);
-
-      console.log("Month", month);
-      
-      console.log("Expense id", expense.id);
-      console.log("Expense", expense);
-      
-      
       Alert.alert(
-        "Delete Expense",
-        "Are you sure you want to delete this expense?",
+        'Delete Expense',
+        'Are you sure you want to delete this expense?',
         [
           {
-            text: "Cancel",
-            style: "cancel"
+            text: 'Cancel',
+            style: 'cancel',
           },
           {
-            text: "Delete",
+            text: 'Delete',
             onPress: () => {
               deleteExpense(month, expense.id);
             },
@@ -102,7 +88,7 @@ const ExpenseCard = ({expense}) => {
         { cancelable: true }
       );
     } else {
-     console.error("Expense or Expense id not defined", expense)
+      console.error('Expense or Expense id not defined', expense);
     }
   };
 
@@ -111,42 +97,44 @@ const ExpenseCard = ({expense}) => {
       style={[
         styles.cardContainer,
         {
-          transform: [{scale: scaleAnim}],
+          transform: [{ scale: scaleAnim }],
           opacity: opacityAnim.interpolate({
             inputRange: [0, 1],
             outputRange: [0, pressOpacityAnim._value],
           }),
         },
-      ]}>
+      ]}
+    >
       <TouchableOpacity
-      activeOpacity={1}
-       onPressIn={handlePressIn} 
-       onPressOut={handlePressOut}
-       onPress={() => handleExpensePress(expense)}
+        activeOpacity={1}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={() => handleExpensePress(expense)}
+        style={{borderRadius: 16, overflow: 'hidden'}}
+
       >
         <LinearGradient colors={['#008080', '#00B4A2']} style={styles.gradient}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                    <View style={{ flex: 3}}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
-                            <Icon name="calendar" size={18} color="#ffffff" />
-                            <Text style={{ color: '#ffffff', marginLeft: 5, fontSize: 16 }}>{expense.date}</Text>
+          <View style={styles.content}>
+                <View style={styles.infoContainer}>
+                    <View style={styles.infoRow}>
+                       <Icon name="calendar" size={18} color="#ffffff" style={styles.icon} />
+                            <Text style={styles.infoText}>{expense.date}</Text>
                         </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
-                            <Icon name="tag" size={18} color="#ffffff" />
-                            <Text style={{ color: '#ffffff', marginLeft: 5, fontSize: 16 }}>{expense.name}</Text>
-                        </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
-                            <Icon name="dollar" size={18} color="#ffffff" />
-                            <Text style={{ color: '#ffffff', marginLeft: 5, fontSize: 16 }}>{String(expense.amount)}</Text>
-                        </View>
+                   <View style={styles.infoRow}>
+                            <Icon name="tag" size={18} color="#ffffff" style={styles.icon} />
+                           <Text style={styles.infoText}>{expense.name}</Text>
                     </View>
-                    <View style={{ flex: 1 , alignItems: 'flex-end'}} >
-                    <TouchableOpacity onPress={handleDelete} style={{ flexDirection: 'row', alignItems: 'flex-end', marginBottom: 5 }}>
-                            <Ant name="delete" size={18} color="#ffffff" />
-
-                        </TouchableOpacity>
-                    </View>
+                     <View style={styles.infoRow}>
+                             <Icon name="dollar" size={18} color="#ffffff" style={styles.icon} />
+                             <Text style={styles.infoText}>{String(expense.amount)}</Text>
+                        </View>
                 </View>
+                <View style={styles.deleteButtonContainer}>
+                     <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
+                           <Ant name="delete" size={20} color="#ffffff" />
+                      </TouchableOpacity>
+                  </View>
+              </View>
         </LinearGradient>
       </TouchableOpacity>
     </Animated.View>
@@ -156,30 +144,50 @@ const ExpenseCard = ({expense}) => {
 const styles = StyleSheet.create({
   cardContainer: {
     width: '100%',
-
-    borderRadius: 10,
+    borderRadius: 16,
     overflow: 'hidden',
+    marginBottom: 8, // Spacing between cards
+     elevation: 4,
     shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+
   },
-  gradient: {
+   gradient: {
     paddingVertical: 16,
     paddingHorizontal: 20,
-  },
-  expenseRow: {
+   },
+
+   content: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start'
+   },
+
+  infoContainer: {
+      flex: 3,
+    },
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 6,
-  },
-  cardText: {
+    marginBottom: 4,
+   },
+    icon: {
+        marginRight: 5,
+   },
+  infoText: {
+     color: '#ffffff',
     fontSize: 16,
-    color: '#ffffff',
-    marginLeft: 12,
-    flex: 1,
-    fontFamily: 'sans-serif',
-  },
+   },
+    deleteButtonContainer: {
+      flex: 1,
+      alignItems: 'flex-end',
+   },
+  deleteButton: {
+        padding: 5,
+    },
+
 });
 
 export default ExpenseCard;

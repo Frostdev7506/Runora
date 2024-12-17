@@ -5,23 +5,19 @@ import {
   StyleSheet,
   Animated,
   Easing,
-  Dimensions,
   TouchableOpacity,
-  TextInput,
-  Modal,
-  Platform,
+  Dimensions,
 } from 'react-native';
 import {LinearGradient} from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import useStore from '../store/store';
 import ExpenseCard from './ExpenseCard';
-import DateTimePickerModal from '@react-native-community/datetimepicker';
 import {ScrollView} from 'react-native-gesture-handler';
 import {useNavigation} from '@react-navigation/native';
 import AnimatedTitle from './ReuseableComponents/AnimatedTitle';
 import AnimatedTouchable from './ReuseableComponents/AnimatedTouchable';
-import uuid from 'react-native-uuid';
+import AddExpenseModal from './ReuseableComponents/AddExpenseModal';
 
 
 const Home = () => {
@@ -34,7 +30,6 @@ const Home = () => {
 
   const {
     budgets,
-
     symbol,
     currency,
     region,
@@ -46,20 +41,8 @@ const Home = () => {
   const navigation = useNavigation();
 
   const expenses = useStore(state => state.expenses || []);
-  
-
-  const Fullstore = useStore(state => state || []);
-
-
-
-  console.log('Expenses:',expenses);
-  
 
   const [isModalVisible, setModalVisible] = useState(false);
-  const [date, setDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [expenseName, setExpenseName] = useState('');
-  const [expenseAmount, setExpenseAmount] = useState('');
 
   useEffect(() => {
     const initialize = async () => {
@@ -68,7 +51,7 @@ const Home = () => {
       // Animate welcome tex
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 1000,
+        duration: 800,
         easing: Easing.inOut(Easing.ease),
         useNativeDriver: true,
       }).start(() => {
@@ -76,8 +59,9 @@ const Home = () => {
         const cardAnimations = cardOpacity.current.map((cardOpac, index) => {
           return Animated.timing(cardOpac, {
             toValue: 1,
-            duration: 500,
-            delay: 100 * (index + 1),
+            duration: 400,
+             delay: 50 * (index + 1),
+            easing: Easing.ease,
             useNativeDriver: true,
           });
         });
@@ -117,35 +101,15 @@ const Home = () => {
 
   // Flatten all expenses for display
   const allExpenses = Object.values(expenses || {}).flat();
-  const handleAddExpense = () => {
-    if (!expenseName || !expenseAmount || isNaN(expenseAmount)) {
-      alert('Please provide valid expense details');
-      return;
-    }
 
-    const selectedDate = date.toISOString().split('T')[0];
-    const selectedMonth = date.toISOString().substring(0, 7);
-
-    addExpense(selectedMonth, {
-      date: selectedDate,
-      name: expenseName,
-      amount: parseFloat(expenseAmount),
-    });
-    setModalVisible(false);
-    setExpenseName('');
-    setExpenseAmount('');
+  const handleAddExpense = (expenseData) => {
+    const selectedMonth = expenseData.date.substring(0, 7);
+    addExpense(selectedMonth, expenseData);
   };
+
 
   const handleSettings = () => {
-    // setModalVisible(false);
     navigation.navigate('Settings');
-  };
-
-  const handleExpensePress = expense => {
-    navigation.navigate('EditExpense', {
-      month: currentMonth,
-      expenseId: expense.id,
-    });
   };
 
   return (
@@ -166,28 +130,31 @@ const Home = () => {
           <Animated.View
             style={[styles.statCard, {opacity: cardOpacity.current[0]}]}>
             <Icon name="bank" size={64} color="#008080" type="solid" />
+            <Text style={styles.statLabel}>Monthly Budget</Text>
+
             <Text style={styles.statValue}>
               {symbolValue} {monthlyBudgetValue}
             </Text>
-            <Text style={styles.statLabel}>Monthly Budget</Text>
           </Animated.View>
 
           {/* Total Expenses Card y*/}
           <Animated.View
             style={[styles.statCard, {opacity: cardOpacity.current[1]}]}>
             <Icon name="shopping-cart" size={64} color="#008080" />
+            <Text style={styles.statLabel}>Total Expenses</Text>
+
             <Text style={styles.statValue}>
               {symbolValue} {totalExpenses}
             </Text>
-            <Text style={styles.statLabel}>Total Expenses</Text>
           </Animated.View>
 
           {/* Currency Card */}
           <Animated.View
             style={[styles.statCard, {opacity: cardOpacity.current[2]}]}>
             <Icon name="flag" size={64} color="#008080" />
-            <Text style={styles.statValue}>{currencyValue}</Text>
             <Text style={styles.statLabel}>Currency</Text>
+
+            <Text style={styles.statValue}>{currencyValue}</Text>
           </Animated.View>
         </View>
 
@@ -214,73 +181,16 @@ const Home = () => {
         <Icon name="plus" size={24} color="#ffffff" />
       </TouchableOpacity>
 
-      <AnimatedTouchable onPress={setModalVisible} style={styles.addButton}>
+      <AnimatedTouchable onPress={() => setModalVisible(true)} style={styles.addButton}>
         <Icon name="plus" size={24} color="#ffffff" />
       </AnimatedTouchable>
 
-      {/* Add Expense Modal  yes*/}
-      {isModalVisible && (
-        <Modal
-          isVisible={isModalVisible}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setModalVisible(false)}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setModalVisible(false)}>
-                <Icon name="times" size={24} color="#008080" />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>Add Expense</Text>
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Date</Text>
-                <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-                  <View style={styles.datePickerInput}>
-                    <Text>{date.toISOString().split('T')[0]}</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Expense Name</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter expense name"
-                  value={expenseName}
-                  onChangeText={setExpenseName}
-                />
-              </View>
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Expense Amount</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter expense amount"
-                  value={expenseAmount}
-                  onChangeText={setExpenseAmount}
-                  keyboardType="numeric"
-                />
-              </View>
-              <TouchableOpacity
-                style={styles.addButtonModal}
-                onPress={handleAddExpense}>
-                <Text style={styles.addButtonText}>Add Expense</Text>
-              </TouchableOpacity>
-            </View>
-            {showDatePicker && (
-              <DateTimePickerModal
-                value={date}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(event, selectedDate) => {
-                  const currentDate = selectedDate || date;
-                  setShowDatePicker(Platform.OS === 'ios');
-                  setDate(currentDate);
-                }}
-              />
-            )}
-          </View>
-        </Modal>
-      )}
+      {/* Add Expense Modal */}
+      <AddExpenseModal
+        isVisible={isModalVisible}
+        onClose={() => setModalVisible(false)}
+        onAddExpense={handleAddExpense}
+      />
     </LinearGradient>
   );
 };
@@ -329,6 +239,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   statValue: {
@@ -338,7 +249,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 18,
     color: '#008080',
     marginLeft: 10,
   },
@@ -367,69 +278,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#008080',
     borderRadius: 30,
     padding: 15,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    backgroundColor: '#ffffff',
-    padding: 20,
-    borderRadius: 10,
-    width: '80%',
-    alignItems: 'center',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#008080',
-  },
-  inputContainer: {
-    width: '100%',
-    marginBottom: 10,
-    alignItems: 'flex-start',
-  },
-  inputLabel: {
-    fontSize: 16,
-    marginBottom: 5,
-    color: '#008080',
-  },
-  input: {
-    backgroundColor: '#f0f0f0',
-    padding: 10,
-    borderRadius: 8,
-    width: '100%',
-  },
-  datePickerInput: {
-    backgroundColor: '#f0f0f0',
-    padding: 10,
-    borderRadius: 8,
-    width: '100%',
-    justifyContent: 'center',
-  },
-  datePickerText: {
-    fontSize: 16,
-    color: '#008080',
-  },
-  addButtonModal: {
-    backgroundColor: '#008080',
-    padding: 15,
-    borderRadius: 8,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addButtonText: {
-    fontSize: 18,
-    color: '#ffffff',
   },
 });
 
