@@ -37,6 +37,7 @@ const Home = () => {
     loadFromStorage,
     addExpense,
     loading,
+    remainingBalance,
   } = useStore();
   const navigation = useNavigation();
   const expenses = useStore(state => state.expenses || []);
@@ -154,6 +155,20 @@ const Home = () => {
                 <Text style={styles.statLabel}>Monthly Budget</Text>
                 <Text style={styles.statValue}>
                   {symbolValue} {monthlyBudgetValue}
+                </Text>
+              </Animated.View>
+
+
+              <Animated.View
+                style={[
+                  styles.statCard,
+                  styles.cardShadow,
+                  { opacity: cardOpacity.current[0] },
+                ]}>
+                <Icon name="bank" size={64} color="#008080" type="solid" />
+                <Text style={styles.statLabel}>Remaining Budget</Text>
+                <Text style={styles.statValue}>
+                  {symbolValue} {remainingBalance}
                 </Text>
               </Animated.View>
 

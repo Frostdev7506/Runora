@@ -232,12 +232,14 @@ const calculateRemainingBalance = get => {
   const carryOverBudget = get().carryOverBudget;
   if (!carryOverBudget) {
     const currentMonth = new Date().toISOString().substring(0, 7);
-    const currentBudget = budgets[currentMonth] || 0;
+    const currentBudget = budgets[currentMonth] || get().monthlyBudget || 0;
+
+    console.log('Current month:', currentMonth, 'Budgets:', budgets,currentBudget);
+    console.log('Current budget:', currentBudget);
     const totalExpenses =
-      expenses[currentMonth]?.reduce(
-        (sum, expense) => sum + expense.amount,
-        0,
-      ) || 0;
+      expenses[currentMonth]?.reduce((sum, expense) => sum + expense.amount, 0) ||
+      0;
+    console.log('Total expenses:', totalExpenses);
     return currentBudget - totalExpenses;
   } else {
     const months = Object.keys(budgets).sort();
