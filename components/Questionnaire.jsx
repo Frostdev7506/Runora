@@ -9,11 +9,30 @@ import {
   TouchableOpacity,
   Animated,
   Easing,
+  Image,
 } from 'react-native';
-
 import {Picker} from '@react-native-picker/picker';
+import {PaperProvider, MD3LightTheme as DefaultTheme} from 'react-native-paper';
+import Icon from 'react-native-vector-icons/FontAwesome6';
+
 import useStore from '../store/store';
 import currencyData from '../utils/currencies';
+
+// Replace with your SVG or local image
+const welcomeImage = require('../assets/welcome-image.png');
+
+const theme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: '#008080',
+    accent: '#f55',
+    background: '#f4f4f8',
+    surface: '#ffffff',
+    text: '#333333',
+    placeholder: '#888888',
+  },
+};
 
 const Questionnaire = ({navigation}) => {
   const [animatedValue] = useState(new Animated.Value(1));
@@ -121,80 +140,85 @@ const Questionnaire = ({navigation}) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome to Runora</Text>
+    <PaperProvider theme={theme}>
+      <View style={styles.container}>
+        <Image source={welcomeImage} style={styles.welcomeImage} />
 
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Monthly Budget</Text>
-        <View
-          style={[
-            styles.inputWrapper,
-            focusedInput && styles.inputWrapperFocused,
-          ]}>
-          <Text style={styles.currencySymbol}>{symbol}</Text>
-          <TextInput
-            style={styles.input}
-            keyboardType="numeric"
-            value={monthlyBudget}
-            onChangeText={setMonthlyBudget}
-            placeholder="Enter monthly budget"
-            placeholderTextColor="#888"
-            onFocus={() => setFocusedInput(true)}
-            onBlur={() => setFocusedInput(false)}
+        <Text style={styles.title}>Welcome to Runora</Text>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Monthly Budget</Text>
+          <View
+            style={[
+              styles.inputWrapper,
+              focusedInput && styles.inputWrapperFocused,
+            ]}>
+            <Icon name="money-bill" size={24} color={theme.colors.primary} />
+            <TextInput
+              style={styles.input}
+              keyboardType="numeric"
+              value={monthlyBudget}
+              onChangeText={setMonthlyBudget}
+              placeholder="Enter monthly budget"
+              placeholderTextColor={theme.colors.placeholder}
+              onFocus={() => setFocusedInput(true)}
+              onBlur={() => setFocusedInput(false)}
+            />
+            <Text style={styles.currencySymbol}>{symbol}</Text>
+          </View>
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Region</Text>
+          <View style={styles.pickerWrapper}>
+            <Picker
+              selectedValue={region}
+              style={styles.picker}
+              onValueChange={handleRegionChange}>
+              {currencyData.map(item => (
+                <Picker.Item
+                  key={item.Region}
+                  label={item.Region}
+                  value={item.Region}
+                  style={styles.pickerItem}
+                />
+              ))}
+            </Picker>
+          </View>
+        </View>
+
+        <Text style={styles.currencyText}>
+          Currency: {symbol}-{currency}
+        </Text>
+
+        <View style={styles.switchContainer}>
+          <Text style={styles.switchLabel}>Carry Over Unused Budget</Text>
+          <Switch
+            value={carryOverBudget}
+            onValueChange={setCarryOverBudget}
+            trackColor={{false: '#767577', true: theme.colors.primary}}
+            thumbColor={carryOverBudget ? theme.colors.accent : '#f4f3f4'}
           />
         </View>
+
+        <Animated.View
+          style={[
+            styles.buttonContainer,
+            {
+              transform: [{scale: animatedValue}],
+            },
+          ]}>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            onPress={handleSubmit}
+            style={styles.button}>
+            <Text style={styles.buttonText}>Get Started</Text>
+          </TouchableOpacity>
+        </Animated.View>
       </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Region</Text>
-        <View style={styles.pickerWrapper}>
-          <Picker
-            selectedValue={region}
-            style={styles.picker}
-            onValueChange={handleRegionChange}>
-            {currencyData.map(item => (
-              <Picker.Item
-                key={item.Region}
-                label={item.Region}
-                value={item.Region}
-                style={styles.pickerItem}
-              />
-            ))}
-          </Picker>
-        </View>
-      </View>
-
-      <Text style={styles.currencyText}>
-        Currency: {symbol}-{currency}
-      </Text>
-
-      <View style={styles.switchContainer}>
-        <Text style={styles.switchLabel}>Carry Over Unused Budget</Text>
-        <Switch
-          value={carryOverBudget}
-          onValueChange={setCarryOverBudget}
-          trackColor={{false: '#767577', true: '#008080'}}
-          thumbColor={carryOverBudget ? '#f55' : '#f4f3f4'}
-        />
-      </View>
-
-      <Animated.View
-        style={[
-          styles.buttonContainer,
-          {
-            transform: [{scale: animatedValue}],
-          },
-        ]}>
-        <TouchableOpacity
-          activeOpacity={1}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          onPress={handleSubmit}
-          style={styles.button}>
-          <Text style={styles.buttonText}>Submit</Text>
-        </TouchableOpacity>
-      </Animated.View>
-    </View>
+    </PaperProvider>
   );
 };
 
@@ -204,13 +228,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#f4f4f8',
+    backgroundColor: theme.colors.background,
+  },
+  welcomeImage: {
+    width: 250,
+    height: 250,
+    marginBottom: 20,
+    resizeMode: 'contain',
   },
   title: {
     fontSize: 36,
     fontWeight: '300',
     marginBottom: 30,
-    color: '#008080',
+    color: theme.colors.primary,
     textAlign: 'center',
   },
   inputContainer: {
@@ -220,46 +250,37 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     marginBottom: 8,
-    color: '#666',
+    color: theme.colors.text,
     paddingHorizontal: 10,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: theme.colors.surface,
     borderRadius: 8,
-    backgroundColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    backgroundColor: theme.colors.surface,
     elevation: 2,
+    paddingHorizontal: 10,
   },
   inputWrapperFocused: {
-    borderColor: '#008080',
+    borderColor: theme.colors.primary,
   },
   currencySymbol: {
     fontSize: 16,
-    marginLeft: 15,
-    color: '#666',
+    color: theme.colors.text,
   },
   input: {
     flex: 1,
     height: 50,
     fontSize: 16,
-    paddingHorizontal: 10,
-    color: '#333',
+    color: theme.colors.text,
   },
   pickerWrapper: {
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: theme.colors.surface,
     borderRadius: 8,
-    backgroundColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    backgroundColor: theme.colors.surface,
     elevation: 2,
   },
   picker: {
@@ -268,11 +289,12 @@ const styles = StyleSheet.create({
   },
   pickerItem: {
     fontSize: 16,
+    color: theme.colors.text,
   },
   currencyText: {
     fontSize: 16,
     marginVertical: 15,
-    color: '#666',
+    color: theme.colors.text,
   },
   switchContainer: {
     flexDirection: 'row',
@@ -284,25 +306,21 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.text,
   },
   buttonContainer: {
     width: '100%',
     alignItems: 'center',
   },
   button: {
-    backgroundColor: '#008080',
+    backgroundColor: theme.colors.primary,
     paddingVertical: 15,
     paddingHorizontal: 50,
     borderRadius: 30,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
     elevation: 3,
   },
   buttonText: {
-    color: 'white',
+    color: theme.colors.surface,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',

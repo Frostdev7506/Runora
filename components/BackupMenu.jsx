@@ -2,150 +2,262 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  Button,
-  Alert,
   StyleSheet,
-  Modal,
   TouchableOpacity,
+  ScrollView,
+  Platform,
+  Modal,
 } from 'react-native';
 import useStore from '../store/store';
 import DocumentPicker from 'react-native-document-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNFS from 'react-native-fs';
-import Icon from 'react-native-vector-icons/MaterialIcons'; // For icons
+import Icon from 'react-native-vector-icons/FontAwesome';
+import { useTheme } from '@react-navigation/native';
+import { Surface, Divider } from 'react-native-paper';
+import { Alert } from 'react-native';
 
 const BackupMenu = ({ visible, onClose }) => {
   const { exportData, loadFromStorage } = useStore();
   const [backupPath, setBackupPath] = useState('');
+  const { colors } = useTheme();
 
-  const handleExportData = async () => {
-    try {
-      const filePath = await exportData(); // Call the exportData method from the store
-      setBackupPath(filePath); // Save the backup path to state
-      Alert.alert('Success', `Data exported successfully to:\n${filePath}`);
-    } catch (error) {
-      console.error('Error exporting data:', error);
-      Alert.alert('Error', 'Failed to export data.');
-    }
-  };
-
-  const handleImportData = async () => {
-    try {
-      const results = await DocumentPicker.pick({
-        type: [DocumentPicker.types.allFiles],
-      });
-
-      if (results.length > 0) {
-        const fileContent = await RNFS.readFile(results[0].uri, 'utf8');
-        const parsedData = JSON.parse(fileContent);
-
-        // Update the state with the imported data
-        await AsyncStorage.setItem('@budgetAppData', JSON.stringify(parsedData));
-        await loadFromStorage(); // Reload the state from storage
-        Alert.alert('Success', 'Data imported successfully.');
+    const handleExportData = async () => {
+      try {
+        const filePath = await exportData();
+        setBackupPath(filePath);
+        Alert.alert(
+          'Success',
+          `Data exported to your Downloads folder`,
+        );
+      } catch (error) {
+        console.error('Error exporting data:', error);
+        Alert.alert('Error', 'Failed to export data.');
       }
-    } catch (err) {
-      if (DocumentPicker.isCancel(err)) {
-        console.log('User cancelled the import process');
-      } else {
-        console.error('Error importing data:', err);
-        Alert.alert('Error', 'Failed to import data.');
+    };
+
+    const handleImportData = async () => {
+      try {
+        const results = await DocumentPicker.pick({
+          type: [DocumentPicker.types.allFiles],
+        });
+
+        if (results.length > 0) {
+          const fileContent = await RNFS.readFile(results[0].uri, 'utf8');
+          const parsedData = JSON.parse(fileContent);
+
+          await AsyncStorage.setItem('@budgetAppData', JSON.stringify(parsedData));
+          await loadFromStorage();
+          Alert.alert('Success', 'Data imported successfully.');
+        }
+      } catch (err) {
+        if (DocumentPicker.isCancel(err)) {
+          console.log('User cancelled the import process');
+        } else {
+          console.error('Error importing data:', err);
+          Alert.alert('Error', 'Failed to import data.');
+        }
       }
-    }
-  };
+    };
 
   return (
-    <Modal visible={visible} transparent={true} animationType="slide">
-      <View style={styles.modalOverlay}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={onClose}
+    >
         <View style={styles.modalContainer}>
+            <Surface style={[styles.modalContent, {}]}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Icon name="close" size={24} color="#000" />
+            <Icon name="times" size={24} color={colors.onSurface} />
           </TouchableOpacity>
+                <Text style={[styles.modalTitle, {color: colors.onSurface}]}>Backup & Restore</Text>
 
-          <Text style={styles.title}>Backup & Restore</Text>
+          <View style={styles.contentContainer}>
+            <Text style={[styles.description, { color: colors.onSurfaceVariant }]}>
+              Safely backup your financial data or restore from a previous backup
+            </Text>
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.button} onPress={handleExportData}>
-              <Icon name="backup" size={20} color="#fff" />
-              <Text style={styles.buttonText}>Export Data</Text>
-            </TouchableOpacity>
+              <View style={styles.buttonGroup}>
+                <TouchableOpacity
+                  style={[styles.button, {}]}
+                  onPress={handleExportData}
+                  activeOpacity={0.9}
+                >
+                <View style={styles.buttonContent}>
+                  <Icon 
+                    name="cloud-upload" 
+                    size={24} 
+                    color={colors.onPrimary} 
+                    style={styles.buttonIcon}
+                  />
+                  <View>
+                    <Text style={[styles.buttonTitle, { color: colors.onPrimary }]}>
+                      Export Backup
+                    </Text>
+                    <Text style={[styles.buttonSubtitle, { color: colors.onSurfaceVariant }]}>
+                      Save to your device
+                    </Text>
+                  </View>
+                  </View>
+                  <Icon 
+                      name="chevron-right" 
+                      size={24} 
+                      color={colors.onPrimary} 
+                  />
+                </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={handleImportData}>
-              <Icon name="restore" size={20} color="#fff" />
-              <Text style={styles.buttonText}>Import Data</Text>
-            </TouchableOpacity>
-          </View>
-
-          {backupPath && (
-            <View style={styles.backupInfo}>
-              <Text style={styles.backupInfoText}>
-                Your backup is stored at:
-              </Text>
-              <Text style={styles.backupPathText}>{backupPath}</Text>
+                <TouchableOpacity
+                  style={[styles.button, {}]}
+                  onPress={handleImportData}
+                  activeOpacity={0.9}
+                >
+                   <View style={styles.buttonContent}>
+                    <Icon 
+                      name="cloud-download" 
+                      size={24} 
+                      color={colors.onPrimary} 
+                      style={styles.buttonIcon}
+                  />
+                    <View>
+                      <Text style={[styles.buttonTitle, { color: colors.onPrimary }]}>
+                        Import Backup
+                      </Text>
+                      <Text style={[styles.buttonSubtitle, { color: colors.onSurfaceVariant }]}>
+                        Restore from file
+                      </Text>
+                  </View>
+                </View>
+                 <Icon 
+                      name="chevron-right" 
+                      size={24} 
+                      color={colors.onPrimary} 
+                  />
+                </TouchableOpacity>
             </View>
-          )}
+            {backupPath && (
+                <Surface
+                  style={[styles.backupInfo, { backgroundColor: colors.surfaceVariant }]}
+                  elevation={1}
+                >
+                  <Icon
+                    name="check-circle"
+                    size={20}
+                    color={colors.onSurfaceVariant}
+                    style={styles.successIcon}
+                  />
+                  <View style={styles.backupTextContainer}>
+                    <Text style={[styles.backupInfoText, { color: colors.onSurfaceVariant }]}>
+                      Backup created successfully
+                    </Text>
+                    <Text
+                      style={[styles.backupPathText, { color: colors.onSurfaceVariant }]}
+                      selectable
+                    >
+                      {backupPath}
+                    </Text>
+                  </View>
+                </Surface>
+              )}
+          </View>
+            </Surface>
         </View>
-      </View>
-    </Modal>
+      </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContainer: {
-    width: '90%',
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    },
+     modalContent: {
     backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 20,
+    padding: 24, // Increased padding
+    borderRadius: 16, // Rounded corners
+    width: '90%', // Wider modal
     alignItems: 'center',
+    elevation: 8, // Shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   closeButton: {
-    alignSelf: 'flex-end',
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 10,
   },
-  title: {
-    fontSize: 20,
+  modalTitle: {
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 24,
+    textAlign: 'center',
   },
-  buttonContainer: {
-    width: '100%',
-    marginBottom: 20,
+   contentContainer: {
+      marginTop: 16,
+    },
+  description: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 24,
   },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#007bff',
-    padding: 10,
-    borderRadius: 5,
-    marginVertical: 5,
+   buttonGroup: {
+    gap: 12,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    marginLeft: 10,
+    button: {
+        borderRadius: 16,
+        backgroundColor: '#008080',
+        padding: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        elevation: 2,
   },
-  backupInfo: {
-    width: '100%',
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: '#f1f1f1',
-    borderRadius: 5,
+    buttonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        
+    },
+    buttonIcon: {
+        marginRight: 16,
+    },
+    buttonTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+  buttonSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
   },
-  backupInfoText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  backupPathText: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 5,
-  },
+    backupInfo: {
+        marginTop: 24,
+        borderRadius: 16,
+        padding: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    successIcon: {
+        marginRight: 12,
+    },
+    backupTextContainer: {
+        flex: 1,
+    },
+    backupInfoText: {
+        fontSize: 14,
+        fontWeight: '500',
+        marginBottom: 4,
+    },
+    backupPathText: {
+        fontSize: 13,
+        fontFamily: Platform.OS === 'android' ? 'monospace' : 'Menlo',
+        opacity: 0.9,
+    },
 });
 
 export default BackupMenu;

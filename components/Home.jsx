@@ -1,4 +1,3 @@
-// Home.jsx
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -8,7 +7,6 @@ import {
   Easing,
   Modal,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -18,7 +16,6 @@ import ExpenseCard from './ExpenseCard';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
 import AnimatedTitle from './ReuseableComponents/AnimatedTitle';
-import AnimatedTouchable from './ReuseableComponents/AnimatedTouchable';
 import AddExpenseModal from './ReuseableComponents/AddExpenseModal';
 import BackupMenu from './BackupMenu'; // Import the BackupMenu component
 
@@ -45,6 +42,8 @@ const Home = () => {
   const expenses = useStore(state => state.expenses || []);
   const [isModalVisible, setModalVisible] = useState(false);
   const [showAdditionalCards, setShowAdditionalCards] = useState(false);
+    const [backupModalVisible, setBackupModalVisible] = useState(false);
+
 
   useEffect(() => {
     const initialize = async () => {
@@ -107,14 +106,14 @@ const Home = () => {
     navigation.navigate('Settings');
   };
 
-  
-
-  const [backupModalVisible, setBackupModalVisible] = useState(false);
 
   const handleOpenBackupMenu = () => {
     setBackupModalVisible(true);
-  
-  }
+  };
+    const handleCloseBackupMenu = () => {
+        setBackupModalVisible(false);
+    };
+
   return (
     <LinearGradient colors={['#f5fcff', '#e0f7fa']} style={styles.container}>
       <View style={styles.headerStyles}>
@@ -240,16 +239,8 @@ const Home = () => {
         onAddExpense={handleAddExpense}
       />
 
-      {/* Backup Menu */}
-      {/* Assuming you have a modal or some other mechanism to show the BackupMenu */}
-      <Modal visible={backupModalVisible} transparent={true} animationType="slide">
-        <View style={styles.modalBackground}>
-          <View style={styles.modalContainer}>
-            <BackupMenu />
-            <TouchableOpacity title="Close" onPress={() => setBackupModalVisible(false)} />
-          </View>
-        </View>
-      </Modal>
+        {/* Backup Menu */}
+        <BackupMenu visible={backupModalVisible} onClose={handleCloseBackupMenu} />
     </LinearGradient>
   );
 };
@@ -381,20 +372,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#008080',
     marginRight: 5,
-  },
-  modalBackground: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContainer: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 10,
-    width: '80%',
-    maxHeight: '80%',
-    overflow: 'hidden',
   },
 });
 
