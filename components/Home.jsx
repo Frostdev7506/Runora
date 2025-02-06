@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   Animated,
+  ActivityIndicator,
   Easing,
   Modal,
   TouchableOpacity,
@@ -19,7 +20,7 @@ import AnimatedTitle from './ReuseableComponents/AnimatedTitle';
 import AddExpenseModal from './ReuseableComponents/AddExpenseModal';
 import BackupMenu from './BackupMenu'; // Import the BackupMenu component
 
-console.log('Home.jsx');
+
 
 const Home = () => {
   const opacity = useRef(new Animated.Value(0)).current;
@@ -72,9 +73,6 @@ const Home = () => {
     initialize();
   }, []);
 
-  if (loading) {
-    return <Text>Loading...</Text>;
-  }
 
   const monthlyBudgetValue = monthlyBudget || 0;
   const symbolValue = symbol || '$';
@@ -115,6 +113,15 @@ const Home = () => {
         setBackupModalVisible(false);
     };
 
+
+    if (loading) {
+      return (
+        <View style={styles.loadingContainer}> {/* Added a style for centering */}
+          <ActivityIndicator size="large" color="#008080" />
+        </View>
+      );
+    }
+  
   return (
     <LinearGradient colors={['#f5fcff', '#e0f7fa']} style={styles.container}>
       <View style={styles.headerStyles}>
