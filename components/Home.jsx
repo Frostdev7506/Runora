@@ -6,19 +6,19 @@ import {
   Animated,
   ActivityIndicator,
   Easing,
-  Modal,
+  Modal, // This import isn't strictly used in this file, but likely used by AddExpenseModal
   TouchableOpacity,
+  ScrollView, 
 } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import useStore from '../store/store';
 import ExpenseCard from './ExpenseCard';
-import { ScrollView } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
 import AnimatedTitle from './ReuseableComponents/AnimatedTitle';
 import AddExpenseModal from './ReuseableComponents/AddExpenseModal';
-import BackupMenu from './BackupMenu'; // Import the BackupMenu component
+import BackupMenu from './BackupMenu'; 
 
 
 
@@ -44,7 +44,7 @@ const Home = () => {
   const expenses = useStore(state => state.expenses || []);
   const [isModalVisible, setModalVisible] = useState(false);
   const [showAdditionalCards, setShowAdditionalCards] = useState(false);
-    const [backupModalVisible, setBackupModalVisible] = useState(false);
+  const [backupModalVisible, setBackupModalVisible] = useState(false);
 
 
   useEffect(() => {
@@ -71,7 +71,7 @@ const Home = () => {
       });
     };
     initialize();
-  }, []);
+  }, [loadFromStorage, opacity, cardOpacity]); // Add dependencies to useEffect
 
 
   const monthlyBudgetValue = monthlyBudget || 0;
@@ -109,19 +109,19 @@ const Home = () => {
   const handleOpenBackupMenu = () => {
     setBackupModalVisible(true);
   };
-    const handleCloseBackupMenu = () => {
-        setBackupModalVisible(false);
-    };
+  const handleCloseBackupMenu = () => {
+    setBackupModalVisible(false);
+  };
 
 
-    if (loading) {
-      return (
-        <View style={styles.loadingContainer}> {/* Added a style for centering */}
-          <ActivityIndicator size="large" color="#008080" />
-        </View>
-      );
-    }
-  
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#008080" />
+      </View>
+    );
+  }
+
   return (
     <LinearGradient colors={['#f5fcff', '#e0f7fa']} style={styles.container}>
       <View style={styles.headerStyles}>
@@ -134,7 +134,7 @@ const Home = () => {
           <Icon name="save" size={24} color="#008080" />
         </TouchableOpacity>
       </View>
-      <ScrollView scrollIndicatorInsets={{ right: 1 }} style={styles.expenseContainer}>
+      <ScrollView scrollIndicatorInsets={{ right: 1 }} style={styles.scrollView}> {/* Use styles.scrollView */}
         <View style={styles.statsContainer}>
           {/* Total Expenses Card */}
           <Animated.View
@@ -228,7 +228,7 @@ const Home = () => {
         </View>
 
         {/* Expense Cards Section */}
-        <View style={styles.expenseContainer}>
+        <View style={styles.expenseCardsContainer}> {/* Consistent naming */}
           {allExpenses.length > 0 ? (
             allExpenses.map((expense, index) => (
               <Animated.View
@@ -261,8 +261,8 @@ const Home = () => {
         onAddExpense={handleAddExpense}
       />
 
-        {/* Backup Menu */}
-        <BackupMenu visible={backupModalVisible} onClose={handleCloseBackupMenu} />
+      {/* Backup Menu */}
+      <BackupMenu visible={backupModalVisible} onClose={handleCloseBackupMenu} />
     </LinearGradient>
   );
 };
@@ -281,8 +281,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  scrollView: {
+  loadingContainer: { // Style for centering the ActivityIndicator
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollView: { // Added scrollView style
+    flex: 1,
+    width: '100%', // Ensure ScrollView takes up the full width
   },
   text: {
     fontSize: 28,
@@ -292,12 +298,12 @@ const styles = StyleSheet.create({
     color: '#008080',
   },
   settingBtn: {
-    fontSize: 28,
+    fontSize: 28, // This doesn't affect the icon size.  Good.
     alignSelf: 'flex-end',
     color: '#008080',
   },
   backupBtn: {
-    fontSize: 28,
+    fontSize: 28, // Same as above
     alignSelf: 'flex-end',
     color: '#008080',
   },
@@ -333,8 +339,12 @@ const styles = StyleSheet.create({
     color: '#008080',
     textAlign: 'center',
   },
-  expenseContainer: {
-    flex: 1,
+  expenseContainer: { //This style existed but was not used.
+    //flex: 1, // Removed flex: 1 here, as it's now on scrollView
+    width: '100%',
+    marginTop: 20,
+  },
+    expenseCardsContainer: { // Renamed for clarity and consistency
     width: '100%',
     marginTop: 20,
   },
