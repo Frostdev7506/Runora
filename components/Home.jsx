@@ -32,7 +32,7 @@ import {
   Divider,
   Button,
 } from 'react-native-paper';
-import CustomPieChart from './CustomPieChart'; // Import the pie chart
+import CustomPieChart from './ReuseableComponents/CustomPieChart'; // Import the pie chart
 
 
 const Home = () => {
@@ -52,9 +52,11 @@ const Home = () => {
     addExpense,
     loading,
     remainingBalance,
+    getExpenses,
   } = useStore();
   const navigation = useNavigation();
   const expenses = useStore(state => state.expenses || []);
+  const [currentMonthExpenses, setCurrentMonthExpenses] = useState([]);
   const [isModalVisible, setModalVisible] = useState(false);
   const [showAdditionalCards, setShowAdditionalCards] = useState(false);
   const [backupModalVisible, setBackupModalVisible] = useState(false);
@@ -86,13 +88,17 @@ const Home = () => {
     initialize();
   }, [loadFromStorage]);
 
+  // Update currentMonthExpenses when expenses change
+  useEffect(() => {
+    const currentMonth = new Date().toISOString().substring(0, 7);
+    const monthExpenses = getExpenses(currentMonth) || [];
+    setCurrentMonthExpenses(monthExpenses);
+  }, [expenses, getExpenses]);
+
    // --- Calculate Current Month's Data ---
   const currentMonth = new Date().toISOString().substring(0, 7);
   const currentMonthBudget = budgets[currentMonth] || monthlyBudget || 0;
-  const currentMonthExpenses = expenses[currentMonth]?.reduce((sum, expense) => sum + expense.amount, 0) || 0;
-
-
-
+  const currentMonthTotal = currentMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0) || 0;
   const monthlyBudgetValue = monthlyBudget || 0;
   const symbolValue = symbol || '$';
   const currencyValue = currency || 'USD';
@@ -261,7 +267,7 @@ const Home = () => {
               <View style={styles.chartContainer}>
               <CustomPieChart
                 budget={currentMonthBudget}
-                expenses={currentMonthExpenses}
+                expenses={currentMonthTotal}
                 symbol={symbolValue}
                 chartSize={chartSize}
               />

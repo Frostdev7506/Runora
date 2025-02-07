@@ -1,30 +1,176 @@
-// store.js
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNFS from 'react-native-fs';
-import DocumentPicker from 'react-native-document-picker'; // Not directly used, but good to keep if you have import/export features
+import DocumentPicker from 'react-native-document-picker';
 import uuid from 'react-native-uuid';
 
-const STORAGE_KEY = '@budgetAppData'; // Consistent storage key
+const STORAGE_KEY = '@budgetAppData';
 
-// Helper function for input validation
 const isValidPositiveNumber = (value) => {
   return typeof value === 'number' && value > 0;
 };
 
+const defaultTagsConfig = {
+  food: { icon: '🍔', color: '#FF6B6B', label: 'Food & Dining' },
+  transport: { icon: '🚗', color: '#4ECDC4', label: 'Transportation' },
+  shopping: { icon: '🛍️', color: '#45B7D1', label: 'Shopping' },
+  groceries: { icon: '🛒', color: '#A7D1AB', label: 'Groceries' },
+  entertainment: { icon: '🎮', color: '#96CEB4', label: 'Entertainment' },
+  health: { icon: '💊', color: '#FF8CC6', label: 'Healthcare' },
+  utilities: { icon: '💡', color: '#FFD93D', label: 'Utilities' },
+  other: { icon: '📝', color: '#6C5CE7', label: 'Other' }
+};
+
 const useStore = create((set, get) => ({
-  // --- Initial State ---
   budgets: {},
   expenses: {},
+  tags: [], 
   symbol: '₹',
   currency: 'rupees',
   region: 'India',
   carryOverBudget: false,
-  monthlyBudget: 0, // Use 0 instead of '' for numerical consistency
+  monthlyBudget: 0,
   remainingBalance: 0,
-  loading: false, // Add loading state
+  loading: false,
 
-  // --- Budget Actions ---
+  addTag: async (tagName, color = '#666666', icon = '📝') => {
+    if (!tagName || typeof tagName !== 'string') {
+      console.error('Tag name must be a non-empty string');
+      return null;
+    }
+
+    const newTag = {
+      id: uuid.v4(),
+      name: tagName.trim(),
+      color,
+      icon,
+      label: tagName.trim(),
+      isCustom: true,
+      createdAt: new Date().toISOString()
+    };
+
+    set(state => ({
+      tags: [...state.tags, newTag]
+    }));
+    await get().saveToStorage();
+    return newTag;
+  },
+
+  updateTag: async (tagId, updates) => {
+    set(state => ({
+      tags: state.tags.map(tag =>
+        tag.id === tagId
+          ? { ...tag, ...updates, updatedAt: new Date().toISOString() }
+          : tag
+      )
+    }));
+    await get().saveToStorage();
+  },
+
+  deleteTag: async (tagId) => {
+    set(state => {
+      const newExpenses = { ...state.expenses };
+      Object.keys(newExpenses).forEach(month => {
+        newExpenses[month] = newExpenses[month].map(expense => ({
+          ...expense,
+          tags: (expense.tags || []).filter(id => id !== tagId)
+        }));
+      });
+
+      return {
+        expenses: newExpenses,
+        tags: state.tags.filter(tag => tag.id !== tagId)
+      };
+    });
+    await get().saveToStorage();
+  },
+
+  getTag: (tagId) => get().tags.find(tag => tag.id === tagId),
+
+  getTags: () => get().tags,
+
+  addExpense: async (month, expenseObject) => {
+    if (!isValidPositiveNumber(expenseObject.amount)) {
+      console.error('Expense amount must be a positive number');
+      return;
+    }
+
+    const newExpense = {
+      ...expenseObject,
+      id: uuid.v4(),
+      tags: expenseObject.tags || [],
+      createdAt: new Date().toISOString()
+    };
+
+    set(state => {
+      const newExpenses = { ...state.expenses };
+      if (!newExpenses[month]) {
+        newExpenses[month] = [];
+      }
+      newExpenses[month].push(newExpense);
+      return {
+        expenses: newExpenses,
+        remainingBalance: get().calculateRemainingBalance(),
+      };
+    });
+    await get().saveToStorage();
+  },
+
+  updateExpense: async (month, expenseId, updatedExpense) => {
+    if (!isValidPositiveNumber(updatedExpense.amount)) {
+      console.error('Updated expense amount must be a positive number.');
+      return;
+    }
+
+    set(state => {
+      const newExpenses = { ...state.expenses };
+      if (!newExpenses[month]) return state;
+
+      const expenseIndex = newExpenses[month].findIndex(
+        expense => expense.id === expenseId
+      );
+      if (expenseIndex === -1) return state;
+
+
+      const updatedTags = updatedExpense.tags ||
+        newExpenses[month][expenseIndex].tags ||
+        [];
+
+      newExpenses[month][expenseIndex] = {
+        ...newExpenses[month][expenseIndex],
+        ...updatedExpense,
+        tags: updatedTags,
+        updatedAt: new Date().toISOString()
+      };
+
+      return {
+        expenses: newExpenses,
+        remainingBalance: get().calculateRemainingBalance(),
+      };
+    });
+    await get().saveToStorage();
+  },
+
+  getExpensesByTag: (tagId) => {
+    const { expenses } = get();
+    const allExpenses = [];
+
+    Object.keys(expenses).forEach(month => {
+      expenses[month].forEach(expense => {
+        if (expense.tags && expense.tags.includes(tagId)) {
+          allExpenses.push({ ...expense, month });
+        }
+      });
+    });
+
+    return allExpenses;
+  },
+
+  getTotalByTag: (tagId) => {
+    const tagExpenses = get().getExpensesByTag(tagId);
+    return tagExpenses.reduce((total, expense) => total + expense.amount, 0);
+  },
+
   addBudget: (month, budget) => {
     if (!isValidPositiveNumber(budget)) {
       console.error('Budget must be a positive number');
@@ -32,7 +178,7 @@ const useStore = create((set, get) => ({
     }
     set(state => ({
       budgets: { ...state.budgets, [month]: budget },
-      remainingBalance: calculateRemainingBalance(get()),
+      remainingBalance: get().calculateRemainingBalance(),
     }));
   },
 
@@ -43,7 +189,7 @@ const useStore = create((set, get) => ({
     }
     set(state => ({
       budgets: { ...state.budgets, [month]: budget },
-      remainingBalance: calculateRemainingBalance(get()),
+      remainingBalance: get().calculateRemainingBalance(),
     }));
   },
 
@@ -52,89 +198,33 @@ const useStore = create((set, get) => ({
       const { [month]: _, ...newBudgets } = state.budgets;
       return {
         budgets: newBudgets,
-        remainingBalance: calculateRemainingBalance(get()),
+        remainingBalance: get().calculateRemainingBalance(),
       };
     });
   },
 
-  getBudget: (month) => get().budgets[month] || 0, // Return 0 if budget is not set
-
-
-  // --- Expense Actions ---
-  addExpense: async (month, expenseObject) => {
-    if (!isValidPositiveNumber(expenseObject.amount)) {
-      console.error('Expense amount must be a positive number');
-      return;
-    }
-    expenseObject.id = uuid.v4();
-    set(state => {
-      const newExpenses = { ...state.expenses };
-      if (!newExpenses[month]) {
-        newExpenses[month] = [];
-      }
-      newExpenses[month].push(expenseObject);
-      return {
-        expenses: newExpenses,
-        remainingBalance: calculateRemainingBalance(get()),
-      };
-    });
-    await get().saveToStorage(); // Use the saveToStorage action
-  },
+  getBudget: (month) => get().budgets[month] || 0,
 
   deleteExpense: async (month, expenseId) => {
-    set(state => {
-      const newExpenses = { ...state.expenses };
-      if (!newExpenses[month]) {
-        return state; // No expenses for this month
-      }
-
-      const filteredExpenses = newExpenses[month].filter(
-        expense => expense.id !== expenseId,
-      );
-
-      newExpenses[month] = filteredExpenses; // Update the expenses for the month
-
-      return {
-        expenses: newExpenses,
-        remainingBalance: calculateRemainingBalance(get()),
-      };
-    });
-    await get().saveToStorage(); // Use the saveToStorage action
-
-  },
-
-  // Combined edit/update logic (since they're identical)
-  updateExpense: async (month, expenseId, updatedExpense) => {
-    if (!isValidPositiveNumber(updatedExpense.amount)) {
-      console.error('Updated expense amount must be a positive number.');
-      return;
+    try {
+      set((state) => {
+        const monthExpenses = state.expenses[month] || [];
+        const updatedExpenses = {
+          ...state.expenses,
+          [month]: monthExpenses.filter((expense) => expense.id !== expenseId),
+        };
+        
+        return {
+          expenses: updatedExpenses,
+          remainingBalance: state.calculateRemainingBalance(),
+        };
+      });
+      
+      await get().saveToStorage();
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      throw error;
     }
-
-    set(state => {
-      const newExpenses = { ...state.expenses };
-      if (!newExpenses[month]) {
-        return state; // No expenses for this month
-      }
-
-      const expenseIndex = newExpenses[month].findIndex(
-        expense => expense.id === expenseId,
-      );
-      if (expenseIndex === -1) {
-        return state; // Expense not found
-      }
-
-      // Update the specific expense
-      newExpenses[month][expenseIndex] = {
-        ...newExpenses[month][expenseIndex],
-        ...updatedExpense,
-      };
-
-      return {
-        expenses: newExpenses,
-        remainingBalance: calculateRemainingBalance(get()),
-      };
-    });
-    await get().saveToStorage();  // Use the saveToStorage action
   },
 
   getExpenses: (month) => get().expenses[month] || [],
@@ -147,7 +237,6 @@ const useStore = create((set, get) => ({
 
   resetBudgets: () => set({ budgets: {}, expenses: {} }),
 
-  // --- Currency & Region Actions ---
   setCurrency: (currency) => set({ currency }),
   setSymbol: (symbol) => set({ symbol }),
   setRegion: (region) => set({ region }),
@@ -160,31 +249,47 @@ const useStore = create((set, get) => ({
     set({ monthlyBudget })
   },
 
-  // --- Persistence Actions ---
   loadFromStorage: async () => {
-    set({ loading: true }); // Set loading to true
+    set({ loading: true });
     try {
       const storedData = await AsyncStorage.getItem(STORAGE_KEY);
       if (storedData) {
         const parsedData = JSON.parse(storedData);
-        // Ensure monthlyBudget is treated as a number
+        console.log("parsedData:", parsedData);
+
+        const loadedTags = Array.isArray(parsedData.tags) ? parsedData.tags : [];
+
         const loadedMonthlyBudget = parsedData.monthlyBudget !== undefined
           ? Number(parsedData.monthlyBudget)
           : 0;
 
-        set({ ...parsedData, monthlyBudget: loadedMonthlyBudget }); // Set loaded data
+        set({ ...parsedData, tags: loadedTags, monthlyBudget: loadedMonthlyBudget });
+      }
+      // Initialize default tags if no tags exist
+      else {
+        const initialTags = Object.entries(defaultTagsConfig).map(([key, config]) => ({
+          id: uuid.v4(),
+          name: key,
+          label: config.label,
+          color: config.color,
+          icon: config.icon,
+          isCustom: false,
+          createdAt: new Date().toISOString()
+        }));
+        set({ tags: initialTags });
+        await get().saveToStorage();
       }
     } catch (error) {
       console.error('Failed to load data from storage', error);
     } finally {
-      set({ loading: false }); // Set loading to false, always
+      set({ loading: false });
     }
   },
 
   saveToStorage: async () => {
     try {
       const state = get();
-       // Exclude 'loading' from being saved
+      // Exclude 'loading' from being saved
       const { loading, ...stateToSave } = state;
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (error) {
@@ -197,7 +302,7 @@ const useStore = create((set, get) => ({
       const state = await AsyncStorage.getItem(STORAGE_KEY);
       if (!state) {
         console.log('No data to export.');
-        return; // Early return
+        return;
       }
 
       const jsonData = JSON.stringify(JSON.parse(state), null, 2);
@@ -210,63 +315,60 @@ const useStore = create((set, get) => ({
       console.error('Error exporting data:', err);
     }
   },
-    //  import file
-    importData: async () => {
-        try {
-            const result = await DocumentPicker.pickSingle({
-                type: [DocumentPicker.types.json],
-            });
 
-            const fileContent = await RNFS.readFile(result.uri, 'utf8');
-            const importedData = JSON.parse(fileContent);
+  importData: async () => {
+    try {
+      const result = await DocumentPicker.pickSingle({
+        type: [DocumentPicker.types.json],
+      });
 
-            // Validate crucial data before merging
-            if (importedData.budgets && typeof importedData.budgets !== 'object') {
-                throw new Error("Invalid 'budgets' data in the imported file.");
-            }
-            if (importedData.expenses && typeof importedData.expenses !== 'object') {
-                throw new Error("Invalid 'expenses' data in the imported file.");
-            }
-            // Add more validation for other critical state properties as needed
+      const fileContent = await RNFS.readFile(result.uri, 'utf8');
+      const importedData = JSON.parse(fileContent);
 
-            // Merge the imported data, giving priority to the imported values
-            set(state => ({
-                ...state,
-                ...importedData,
-            }));
-            console.log("Successfully imported", result.name);
-            get().saveToStorage(); //save data
+      if (importedData.budgets && typeof importedData.budgets !== 'object') {
+          throw new Error("Invalid 'budgets' data in the imported file.");
+      }
+      if (importedData.expenses && typeof importedData.expenses !== 'object') {
+          throw new Error("Invalid 'expenses' data in the imported file.");
+      }
+      // Merge the imported data, giving priority to the imported values
+      set(state => ({
+        ...state,
+        ...importedData,
+      }));
+      console.log("Successfully imported", result.name);
+      get().saveToStorage();
 
-        } catch (err) {
-             if (DocumentPicker.isCancel(err)) {
-                console.log('User cancelled file picker');
-              } else {
-            console.error('Error importing data:', err);
-            }
-        }
-    },
-}));
+    } catch (err) {
+      if (DocumentPicker.isCancel(err)) {
+        console.log('User cancelled file picker');
+      } else {
+        console.error('Error importing data:', err);
+      }
+    }
+  },
 
-const calculateRemainingBalance = (get) => {  // Pass get to the function
+  calculateRemainingBalance: () => {
     const { budgets, expenses, carryOverBudget, monthlyBudget } = get();
     if (!carryOverBudget) {
-        const currentMonth = new Date().toISOString().substring(0, 7);
-        const currentBudget = budgets[currentMonth] || monthlyBudget || 0;
-        const totalExpenses =
-            expenses[currentMonth]?.reduce((sum, expense) => sum + expense.amount, 0) ||
-            0;
-        return currentBudget - totalExpenses;
+      const currentMonth = new Date().toISOString().substring(0, 7);
+      const currentBudget = budgets[currentMonth] || monthlyBudget || 0;
+      const totalExpenses =
+        expenses[currentMonth]?.reduce((sum, expense) => sum + expense.amount, 0) ||
+        0;
+      return currentBudget - totalExpenses;
     } else {
-        const months = Object.keys(budgets).sort();
-        let remaining = 0;
-        for (const month of months) {
-            const budget = budgets[month] || 0;
-            const monthExpenses =
-                expenses[month]?.reduce((sum, expense) => sum + expense.amount, 0) || 0;
-            remaining += budget - monthExpenses;
-        }
-        return remaining;
+      const months = Object.keys(budgets).sort();
+      let remaining = 0;
+      for (const month of months) {
+        const budget = budgets[month] || 0;
+        const monthExpenses =
+          expenses[month]?.reduce((sum, expense) => sum + expense.amount, 0) || 0;
+        remaining += budget - monthExpenses;
+      }
+      return remaining;
     }
-};
+  },
+}));
 
 export default useStore;
