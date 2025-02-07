@@ -53,6 +53,7 @@ const Home = () => {
     loading,
     remainingBalance,
     getExpenses,
+    getTags
   } = useStore();
   const navigation = useNavigation();
   const expenses = useStore(state => state.expenses || []);
@@ -60,6 +61,9 @@ const Home = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [showAdditionalCards, setShowAdditionalCards] = useState(false);
   const [backupModalVisible, setBackupModalVisible] = useState(false);
+  const [selectedTag, setSelectedTag] = useState(null);
+  const tags = getTags();
+
 
   // --- Chart Variables ---
   const chartSize = 250; // Diameter of the pie chart
@@ -120,6 +124,12 @@ const Home = () => {
   );
 
   const allExpenses = Object.values(expenses || {}).flat();
+
+
+  const filteredExpenses = selectedTag
+      ? allExpenses.filter(expense => expense.tags && expense.tags.includes(selectedTag))
+      : allExpenses;
+
 
   const handleAddExpense = (expenseData) => {
     const selectedMonth = expenseData.date.substring(0, 7);
@@ -275,11 +285,55 @@ const Home = () => {
               </View>
 
               <Divider style={styles.divider} />
+
+              {/* Tag Filter */}
+              <View style={styles.tagFilterContainer}>
+                <Text style={styles.recentTransactionsTitle}>Filter by Tag:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <TouchableOpacity
+                    style={[
+                      styles.tagButton,
+                      !selectedTag && styles.tagButtonSelected,
+                    ]}
+                    onPress={() => setSelectedTag(null)}
+                  >
+                    <Text
+                      style={[
+                        styles.tagButtonText,
+                        !selectedTag && styles.tagButtonTextSelected,
+                      ]}
+                    >
+                      All
+                    </Text>
+                  </TouchableOpacity>
+                  {tags.map((tag) => (
+                    <TouchableOpacity
+                      key={tag.id}
+                      style={[
+                        styles.tagButton,
+                        selectedTag === tag.id && styles.tagButtonSelected,
+                        { backgroundColor: tag.color },
+                      ]}
+                      onPress={() => setSelectedTag(tag.id)}
+                    >
+                      <Text
+                        style={[
+                          styles.tagButtonText,
+                          selectedTag === tag.id && styles.tagButtonTextSelected,
+                        ]}
+                      >
+                        {tag.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
               <Title style={styles.recentTransactionsTitle}>Your Recent Expenses</Title>
 
               <View style={styles.expenseCardsContainer}>
-                {allExpenses.length > 0 ? (
-                  allExpenses.map((expense, index) => (
+                {filteredExpenses.length > 0 ? (
+                  filteredExpenses.map((expense, index) => (
                     <ExpenseCard key={index} expense={expense} />
                   ))
                 ) : (
@@ -440,7 +494,29 @@ const styles = StyleSheet.create({
     chartContainer:{
       alignItems: 'center',
       marginTop: 20
-  }
+  },
+  // Tag Filter styles
+  tagFilterContainer: {
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  tagButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 10,
+    backgroundColor: '#ddd', // Default background color
+  },
+  tagButtonSelected: {
+    backgroundColor: '#008080', // Highlighted background color
+  },
+  tagButtonText: {
+    fontSize: 14,
+    color: '#333', // Default text color
+  },
+  tagButtonTextSelected: {
+    color: '#fff', // Highlighted text color
+  },
 
 });
 
