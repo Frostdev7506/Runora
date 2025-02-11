@@ -1,4 +1,4 @@
-// Home.jsx
+// Home.jsx (Modified)
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -10,8 +10,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/FontAwesome';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import Ionicons from 'react-native-vector-icons/Ionicons';  // Keep this import
 import useStore from '../store/store';
 import ExpenseCard from './ExpenseCard';
 import { useNavigation } from '@react-navigation/native';
@@ -22,17 +21,16 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import {
   Provider as PaperProvider,
   Text,
-  Card,
-  Title,
-  Paragraph,
   IconButton,
   FAB,
   Portal,
   Modal as PaperModal,
   Divider,
   Button,
+  Title,
 } from 'react-native-paper';
-import CustomPieChart from './ReuseableComponents/CustomPieChart'; // Import the pie chart
+import CustomPieChart from './ReuseableComponents/CustomPieChart';
+import SummaryCard from './ReuseableComponents/SummaryCard';
 
 
 const Home = () => {
@@ -65,8 +63,7 @@ const Home = () => {
   const tags = getTags();
 
 
-  // --- Chart Variables ---
-  const chartSize = 250; // Diameter of the pie chart
+  const chartSize = 250;
 
   useEffect(() => {
     const initialize = async () => {
@@ -92,14 +89,12 @@ const Home = () => {
     initialize();
   }, [loadFromStorage]);
 
-  // Update currentMonthExpenses when expenses change
   useEffect(() => {
     const currentMonth = new Date().toISOString().substring(0, 7);
     const monthExpenses = getExpenses(currentMonth) || [];
     setCurrentMonthExpenses(monthExpenses);
   }, [expenses, getExpenses]);
 
-   // --- Calculate Current Month's Data ---
   const currentMonth = new Date().toISOString().substring(0, 7);
   const currentMonthBudget = budgets[currentMonth] || monthlyBudget || 0;
   const currentMonthTotal = currentMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0) || 0;
@@ -127,8 +122,8 @@ const Home = () => {
 
 
   const filteredExpenses = selectedTag
-      ? allExpenses.filter(expense => expense.tags && expense.tags.includes(selectedTag))
-      : allExpenses;
+    ? allExpenses.filter(expense => expense.tags && expense.tags.includes(selectedTag))
+    : allExpenses;
 
 
   const handleAddExpense = (expenseData) => {
@@ -163,7 +158,6 @@ const Home = () => {
           <LinearGradient colors={['#f5fcff', '#e0f7fa']} style={styles.linearGradient}>
             <View style={styles.headerStyles}>
               <Animated.View style={{ opacity }}>
-                {/*  You can add an animated welcome message here if needed */}
               </Animated.View>
               <Text style={styles.headerTitle}>
                 <AnimatedTitle>Home</AnimatedTitle>
@@ -190,73 +184,47 @@ const Home = () => {
               scrollIndicatorInsets={{ right: 1 }}
             >
               <View style={styles.statsContainer}>
-                <Animated.View style={[styles.card, { opacity: cardOpacity[0] }]}>
-                  <Card style={styles.cardContent}>
-                    <Card.Content style={styles.cardContentContainer}>
-                      <View style={styles.iconAndTextContainer}>
-                        <Icon name="shopping-cart" size={30} color="#008080" />
-                        <Title style={styles.cardTitle}>Total Expenses</Title>
-                      </View>
-                      <Paragraph style={styles.cardParagraph}>
-                        {symbolValue} {totalExpenses}
-                      </Paragraph>
-                    </Card.Content>
-                  </Card>
-                </Animated.View>
-
+                {/* Use the SummaryCard component */}
+                <SummaryCard
+                  iconName="shopping-cart"
+                  title="Total Expenses"
+                  value={totalExpenses}
+                  symbol={symbolValue}
+                  opacity={cardOpacity[2]}
+                />
 
                 {showAdditionalCards && (
                   <>
-                    <Animated.View style={[styles.card, { opacity: cardOpacity[1] }]}>
-                      <Card style={styles.cardContent}>
-                        <Card.Content style={styles.cardContentContainer}>
-                          <View style={styles.iconAndTextContainer}>
-                            <Icon name="bank" size={30} color="#008080" />
-                            <Title style={styles.cardTitle}>Monthly Budget</Title>
-                          </View>
-                          <Paragraph style={styles.cardParagraph}>
-                            {symbolValue} {monthlyBudgetValue}
-                          </Paragraph>
-                        </Card.Content>
-                      </Card>
-                    </Animated.View>
+                    <SummaryCard
+                      iconName="bank"
+                      title="Monthly Budget"
+                      value={monthlyBudgetValue}
+                      symbol={symbolValue}
+                      opacity={cardOpacity[2]}
+                    />
+                    <SummaryCard
+                      iconName="money"
+                      title="Remaining Budget"
+                      value={remainingBalance}
+                      symbol={symbolValue}
+                      opacity={cardOpacity[2]}
+                    />
 
-                    <Animated.View style={[styles.card, { opacity: cardOpacity[2] }]}>
-                      <Card style={styles.cardContent}>
-                        <Card.Content style={styles.cardContentContainer}>
-                          <View style={styles.iconAndTextContainer}>
-                            <Icon name="money" size={30} color="#008080" />
-                            <Title style={styles.cardTitle}>Remaining Budget</Title>
-                          </View>
-                          <Paragraph style={styles.cardParagraph}>
-                            {symbolValue} {remainingBalance}
-                          </Paragraph>
-                        </Card.Content>
-                      </Card>
-                    </Animated.View>
+                    <SummaryCard
+                      iconName="flag"
+                      title="Currency"
+                      value={currencyValue}
+                      symbol=""
+                      opacity={cardOpacity[3]}
+                    />
 
-                    <Animated.View style={[styles.card, { opacity: cardOpacity[3] }]}>
-                      <Card style={styles.cardContent}>
-                        <Card.Content style={styles.cardContentContainer}>
-                          <View style={styles.iconAndTextContainer}>
-                            <Icon name="flag" size={30} color="#008080" />
-                            <Title style={styles.cardTitle}>Currency</Title>
-                          </View>
-                          <Paragraph style={styles.cardParagraph}>{currencyValue}</Paragraph>
-                        </Card.Content>
-                      </Card>
-                    </Animated.View>
-                    <Animated.View style={[styles.card, { opacity: cardOpacity[4] }]}>
-                      <Card style={styles.cardContent}>
-                        <Card.Content style={styles.cardContentContainer}>
-                          <View style={styles.iconAndTextContainer}>
-                            <Icon name="globe" size={30} color="#008080" />
-                            <Title style={styles.cardTitle}>Region</Title>
-                          </View>
-                          <Paragraph style={styles.cardParagraph}>{regionValue}</Paragraph>
-                        </Card.Content>
-                      </Card>
-                    </Animated.View>
+                    <SummaryCard
+                      iconName="globe"
+                      title="Region"
+                      value={regionValue}
+                      symbol=""
+                      opacity={cardOpacity[4]}
+                    />
                   </>
                 )}
               </View>
@@ -273,20 +241,18 @@ const Home = () => {
                 </Button>
               </View>
 
-              {/* --- Custom Pie Chart --- */}
               <View style={styles.chartContainer}>
-              <CustomPieChart
-                budget={currentMonthBudget}
-                expenses={currentMonthTotal}
-                symbol={symbolValue}
-                chartSize={chartSize}
-              />
-                  <Text style={styles.chartLabelText}>{currentMonth}</Text>
+                <CustomPieChart
+                  budget={currentMonthBudget}
+                  expenses={currentMonthTotal}
+                  symbol={symbolValue}
+                  chartSize={chartSize}
+                />
+                <Text style={styles.chartLabelText}>{currentMonth}</Text>
               </View>
 
               <Divider style={styles.divider} />
 
-              {/* Tag Filter */}
               <View style={styles.tagFilterContainer}>
                 <Text style={styles.recentTransactionsTitle}>Filter by Tag:</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -412,42 +378,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 20,
   },
-  card: {
-    marginBottom: 10,
-    borderRadius: 12,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    backgroundColor: 'transparent',
-  },
-  cardContent: {
-    backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
-    minHeight: 100,
-
-  },
-  cardContentContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  iconAndTextContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  cardTitle: {
-    marginLeft: 10,
-    color: '#008080',
-  },
-  cardParagraph: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#008080',
-  },
   expenseCardsContainer: {
     marginTop: 20,
   },
@@ -480,22 +410,20 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   showMoreButton: {
-    // Add spacing or other styles if needed
   },
   buttonContainer: {
     alignItems: 'center',
   },
-    chartLabelText: {
+  chartLabelText: {
     color: '#555',
     fontSize: 12,
-        textAlign: 'center',
-        marginTop: 10,
+    textAlign: 'center',
+    marginTop: 10,
   },
-    chartContainer:{
-      alignItems: 'center',
-      marginTop: 20
+  chartContainer: {
+    alignItems: 'center',
+    marginTop: 20
   },
-  // Tag Filter styles
   tagFilterContainer: {
     marginTop: 20,
     marginBottom: 10,
@@ -505,17 +433,17 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 10,
-    backgroundColor: '#ddd', // Default background color
+    backgroundColor: '#ddd',
   },
   tagButtonSelected: {
-    backgroundColor: '#008080', // Highlighted background color
+    backgroundColor: '#008080',
   },
   tagButtonText: {
     fontSize: 14,
-    color: '#333', // Default text color
+    color: '#333',
   },
   tagButtonTextSelected: {
-    color: '#fff', // Highlighted text color
+    color: '#fff',
   },
 
 });

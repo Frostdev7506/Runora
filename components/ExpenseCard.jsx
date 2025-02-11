@@ -155,11 +155,11 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   surface: {
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   contentContainer: {
-    padding: 16,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -169,18 +169,18 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 22,
   },
   mainContent: {
     flex: 1,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     marginBottom: 4,
   },
   date: {
-    fontSize: 14,
+    fontSize: 12,
     marginBottom: 8,
   },
   amountContainer: {
@@ -189,7 +189,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   amount: {
-    fontSize: 20,
+    fontSize: 18
+    ,
     fontWeight: '700',
   },
   symbol: {
