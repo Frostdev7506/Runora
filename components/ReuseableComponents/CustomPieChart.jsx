@@ -1,4 +1,3 @@
-// CustomPieChart.js
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated, Easing } from 'react-native';
 import { Text, useTheme, Surface } from 'react-native-paper';
@@ -6,6 +5,7 @@ import { Text, useTheme, Surface } from 'react-native-paper';
 const CustomPieChart = ({ budget, expenses, symbol = '$', chartSize = 200 }) => {
   const theme = useTheme();
   const expenseAngle = useRef(new Animated.Value(0)).current;
+  const rightExpenseAngle = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const total = budget;
@@ -16,72 +16,88 @@ const CustomPieChart = ({ budget, expenses, symbol = '$', chartSize = 200 }) => 
     }
 
     const finalExpenseAngle = expenseRatio * 360;
+    
+    // Reset both animations
+    expenseAngle.setValue(0);
+    rightExpenseAngle.setValue(0);
 
+    // Animate left half (0 to 180 degrees)
     Animated.timing(expenseAngle, {
-      toValue: finalExpenseAngle,
+      toValue: Math.min(180, finalExpenseAngle),
       duration: 800,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
-  }, [budget, expenses, expenseAngle]);
 
-  const expenseRotation = expenseAngle.interpolate({
-    inputRange: [0, 360],
-    outputRange: ['0deg', '360deg'],
+    // Animate right half (180 to 360 degrees)
+    if (finalExpenseAngle > 180) {
+      Animated.timing(rightExpenseAngle, {
+        toValue: Math.min(180, finalExpenseAngle - 180),
+        duration: 800,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [budget, expenses, expenseAngle, rightExpenseAngle]);
+
+  const leftRotation = expenseAngle.interpolate({
+    inputRange: [0, 180],
+    outputRange: ['0deg', '180deg'],
   });
 
-  // Calculate remaining amount and percentage
+  const rightRotation = rightExpenseAngle.interpolate({
+    inputRange: [0, 180],
+    outputRange: ['0deg', '180deg'],
+  });
+
   const remainingAmount = budget - expenses;
   const remainingPercentage = budget === 0 ? 0 : Math.round((remainingAmount / budget) * 100);
-
-  const innerSize = chartSize * 0.9; // Size of the actual pie chart
+  const innerSize = chartSize * 0.9;
 
   return (
     <Surface style={[styles.chartContainer, { width: chartSize, height: chartSize }]} elevation={2}>
       <View style={[styles.innerContainer, { width: innerSize, height: innerSize }]}>
         {/* Base circle (light purple) */}
-         <View style={[styles.baseCircle, { backgroundColor: '#e0f7fa'}]} />
+        <View style={[styles.baseCircle, { backgroundColor: '#e0f7fa' }]} />
 
-        {/* Animated expense slice */}
+        {/* Left half container */}
+        <View style={styles.leftHalf}>
           <Animated.View
             style={[
-            styles.slice,
-            {
+              styles.slice,
+              {
                 backgroundColor: '#B00020',
-                transform: [
-                { rotate: '0deg' },
-                { translateX: innerSize / 2 },
-                { rotate: expenseRotation },
-                { translateX: -innerSize / 2 },
-                ],
-            },
+                transform: [{ rotate: leftRotation }],
+              },
             ]}
-        />
+          />
+        </View>
+
+        {/* Right half container */}
+        <View style={styles.rightHalf}>
+          <Animated.View
+            style={[
+              styles.slice,
+              {
+                backgroundColor: '#B00020',
+                transform: [{ rotate: rightRotation }],
+              },
+            ]}
+          />
+        </View>
 
         {/* Border */}
-        <View
-          style={[
-            styles.border,
-            {
-              borderColor:  '#008080',
-            }
-          ]}
-        />
+        <View style={[styles.border, { borderColor: '#008080' }]} />
 
         {/* Center white circle for text */}
-       <View style={[styles.centerCircle, { backgroundColor: '#ffffff' }]}>
-            <Text
-                variant="titleLarge"
-                style={[styles.amountText, { color: '#008080' }]}
-            >
-                {symbol}{remainingAmount.toLocaleString()}
-            </Text>
-            <Text
-                variant="labelMedium"
-                style={[styles.percentageText, { color: '#008080' }]}
-            >
-                Remaining ({remainingPercentage}%)
-            </Text>
+        <View style={[styles.centerCircle, { backgroundColor: '#ffffff' }]}>
+          <Text variant="titleLarge" style={[styles.amountText, { color: '#008080' }]}>
+            {symbol}
+            {remainingAmount.toLocaleString()}
+          </Text>
+          <Text variant="labelMedium" style={[styles.percentageText, { color: '#008080' }]}>
+            Remaining ({remainingPercentage}%)
+          </Text>
         </View>
       </View>
     </Surface>
@@ -93,7 +109,7 @@ const styles = StyleSheet.create({
     borderRadius: 1000,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 10, // Add padding to contain shadows
+    padding: 10,
   },
   innerContainer: {
     position: 'relative',
@@ -106,14 +122,26 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 1000,
   },
-  slice: {
+  leftHalf: {
     position: 'absolute',
     width: '50%',
     height: '100%',
     left: 0,
-    top: 0,
-    backgroundColor: 'transparent',
+    overflow: 'hidden',
+  },
+  rightHalf: {
+    position: 'absolute',
+    width: '50%',
+    height: '100%',
+    right: 0,
+    overflow: 'hidden',
+  },
+  slice: {
+    position: 'absolute',
+    width: '200%',
+    height: '100%',
     transformOrigin: 'right',
+    left: 0,
   },
   centerCircle: {
     position: 'absolute',
