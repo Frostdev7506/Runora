@@ -4,7 +4,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider as PaperProvider, MD3LightTheme as DefaultTheme } from 'react-native-paper'; // Import
 import { NavigationContainer } from '@react-navigation/native'; // Import
 import MyStack from './navigation/Stack';  // Assuming you have a Stack Navigator
-import useStore from './store/store'; //zustand
+import useStore, { initializeBudgetUpdater } from './store/store'; // Import initializeBudgetUpdater
+
 
 // Define your custom theme
 const theme = {
@@ -40,8 +41,8 @@ const App = () => {
     const { loadFromStorage } = useStore();
 
     React.useEffect(() => {
-        loadFromStorage();
-    }, [loadFromStorage]);
+      initializeBudgetUpdater();
+    }, []);
 
 
   return (

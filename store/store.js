@@ -3,11 +3,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNFS from 'react-native-fs';
 import DocumentPicker from 'react-native-document-picker';
 import uuid from 'react-native-uuid';
+import { AppState } from 'react-native'; // Import AppState
 
 const STORAGE_KEY = '@budgetAppData';
 
 const isValidPositiveNumber = (value) => {
-  return typeof value === 'number' && value > 0;
+  return typeof value === 'number' && value >= 0;
 };
 
 const defaultTagsConfig = {
@@ -24,7 +25,7 @@ const defaultTagsConfig = {
 const useStore = create((set, get) => ({
   budgets: {},
   expenses: {},
-  tags: [], 
+  tags: [],
   symbol: '₹',
   currency: 'rupees',
   region: 'India',
@@ -32,6 +33,7 @@ const useStore = create((set, get) => ({
   monthlyBudget: 0,
   remainingBalance: 0,
   loading: false,
+  lastBudgetUpdate: null, // Add a timestamp for the last budget update
 
   addTag: async (tagName, color = '#666666', icon = '📝') => {
     if (!tagName || typeof tagName !== 'string') {
@@ -172,14 +174,13 @@ const useStore = create((set, get) => ({
   },
 
   addBudget: (month, budget) => {
-    if (!isValidPositiveNumber(budget)) {
-      console.error('Budget must be a positive number');
-      return;
-    }
-    set(state => ({
-      budgets: { ...state.budgets, [month]: budget },
-      remainingBalance: get().calculateRemainingBalance(),
-    }));
+      
+      set(state => ({
+          budgets: { ...state.budgets, [month]: budget },
+          remainingBalance: get().calculateRemainingBalance(),
+          lastBudgetUpdate: new Date().toISOString(), // Update the timestamp
+      }));
+      get().saveToStorage(); // Save after updating
   },
 
   updateBudget: (month, budget) => {
@@ -190,7 +191,9 @@ const useStore = create((set, get) => ({
     set(state => ({
       budgets: { ...state.budgets, [month]: budget },
       remainingBalance: get().calculateRemainingBalance(),
+      lastBudgetUpdate: new Date().toISOString()
     }));
+      get().saveToStorage();
   },
 
   removeBudget: (month) => {
@@ -199,8 +202,10 @@ const useStore = create((set, get) => ({
       return {
         budgets: newBudgets,
         remainingBalance: get().calculateRemainingBalance(),
+        lastBudgetUpdate: new Date().toISOString()
       };
     });
+    get().saveToStorage();
   },
 
   getBudget: (month) => get().budgets[month] || 0,
@@ -213,13 +218,13 @@ const useStore = create((set, get) => ({
           ...state.expenses,
           [month]: monthExpenses.filter((expense) => expense.id !== expenseId),
         };
-        
+
         return {
           expenses: updatedExpenses,
           remainingBalance: state.calculateRemainingBalance(),
         };
       });
-      
+
       await get().saveToStorage();
     } catch (error) {
       console.error('Error deleting expense:', error);
@@ -242,49 +247,66 @@ const useStore = create((set, get) => ({
   setRegion: (region) => set({ region }),
   setCarryOverBudget: (carryOverBudget) => set({ carryOverBudget }),
   setMonthlyBudget: (monthlyBudget) => {
-    if (!isValidPositiveNumber(monthlyBudget)) {
-      console.error('Monthly budget must be a positive number');
-      return;
-    }
-    set({ monthlyBudget })
+      if (!isValidPositiveNumber(monthlyBudget)) {
+          console.error('Monthly budget must be a positive number');
+          return;
+      }
+      set({ monthlyBudget })
   },
 
-  loadFromStorage: async () => {
-    set({ loading: true });
-    try {
-      const storedData = await AsyncStorage.getItem(STORAGE_KEY);
-      if (storedData) {
-        const parsedData = JSON.parse(storedData);
-        console.log("parsedData:", parsedData);
+    checkAndUpdateBudget: async () => {
+      const now = new Date();
+      const currentMonth = now.toISOString().substring(0, 7);
+      const { lastBudgetUpdate, monthlyBudget, budgets } = get();
 
-        const loadedTags = Array.isArray(parsedData.tags) ? parsedData.tags : [];
-
-        const loadedMonthlyBudget = parsedData.monthlyBudget !== undefined
-          ? Number(parsedData.monthlyBudget)
-          : 0;
-
-        set({ ...parsedData, tags: loadedTags, monthlyBudget: loadedMonthlyBudget });
+      // Determine if an update is needed
+      let needsUpdate = false;
+      if (!lastBudgetUpdate) {
+          needsUpdate = true; // First run, always update
+      } else {
+          const lastUpdateMonth = new Date(lastBudgetUpdate).toISOString().substring(0, 7);
+          needsUpdate = currentMonth !== lastUpdateMonth; // Update if the month has changed
       }
-      // Initialize default tags if no tags exist
-      else {
-        const initialTags = Object.entries(defaultTagsConfig).map(([key, config]) => ({
-          id: uuid.v4(),
-          name: key,
-          label: config.label,
-          color: config.color,
-          icon: config.icon,
-          isCustom: false,
-          createdAt: new Date().toISOString()
-        }));
-        set({ tags: initialTags });
-        await get().saveToStorage();
-      }
-    } catch (error) {
-      console.error('Failed to load data from storage', error);
-    } finally {
-      set({ loading: false });
-    }
-  },
+
+        if (needsUpdate) {
+            const existingBudget = budgets[currentMonth] || 0;
+            const newBudget = existingBudget + monthlyBudget; // Add to existing, if any
+            get().addBudget(currentMonth, newBudget); // Use addBudget to handle updates and saving
+        }
+    },
+
+    loadFromStorage: async () => {
+        set({ loading: true });
+        try {
+            const storedData = await AsyncStorage.getItem(STORAGE_KEY);
+            if (storedData) {
+                const parsedData = JSON.parse(storedData);
+                const loadedTags = Array.isArray(parsedData.tags) ? parsedData.tags : [];
+                const loadedMonthlyBudget = parsedData.monthlyBudget !== undefined ? Number(parsedData.monthlyBudget) : 0;
+                set({ ...parsedData, tags: loadedTags, monthlyBudget: loadedMonthlyBudget });
+
+                // Check and update budget after loading
+              await get().checkAndUpdateBudget();
+            } else {
+                const initialTags = Object.entries(defaultTagsConfig).map(([key, config]) => ({
+                    id: uuid.v4(),
+                    name: key,
+                    label: config.label,
+                    color: config.color,
+                    icon: config.icon,
+                    isCustom: false,
+                    createdAt: new Date().toISOString()
+                }));
+                set({ tags: initialTags });
+                await get().saveToStorage(); // Initial save if no data
+            }
+
+        } catch (error) {
+            console.error('Failed to load data from storage', error);
+        } finally {
+            set({ loading: false });
+        }
+    },
 
   saveToStorage: async () => {
     try {
@@ -370,5 +392,29 @@ const useStore = create((set, get) => ({
     }
   },
 }));
+
+// --- AppState Listener (Outside the store) ---
+
+let appStateSubscription;
+
+const initializeAppStateListener = () => {
+  if (appStateSubscription) {
+    appStateSubscription.remove(); // Remove any existing listener
+  }
+
+  appStateSubscription = AppState.addEventListener('change', nextAppState => {
+    if (nextAppState === 'active') {
+      useStore.getState().checkAndUpdateBudget();
+    }
+  });
+};
+
+
+export const initializeBudgetUpdater = () => {
+    initializeAppStateListener();
+    useStore.getState().loadFromStorage().then(() => {  // load and *then* check
+      useStore.getState().checkAndUpdateBudget();
+    });
+};
 
 export default useStore;

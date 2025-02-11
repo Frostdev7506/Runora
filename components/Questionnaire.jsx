@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,14 +11,13 @@ import {
   Easing,
   Image,
 } from 'react-native';
-import {Picker} from '@react-native-picker/picker';
-import {PaperProvider, MD3LightTheme as DefaultTheme} from 'react-native-paper';
+import { Picker } from '@react-native-picker/picker';
+import { PaperProvider, MD3LightTheme as DefaultTheme } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome6';
 
 import useStore from '../store/store';
 import currencyData from '../utils/currencies';
 
-// Replace with your SVG or local image
 const welcomeImage = require('../assets/welcome-image.png');
 
 const theme = {
@@ -34,30 +33,11 @@ const theme = {
   },
 };
 
-const Questionnaire = ({navigation}) => {
+const Questionnaire = ({ navigation }) => {
   const [animatedValue] = useState(new Animated.Value(1));
   const [focusedInput, setFocusedInput] = useState(false);
 
-  const handlePressIn = () => {
-    Animated.timing(animatedValue, {
-      toValue: 0.95,
-      duration: 100,
-      easing: Easing.linear,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.timing(animatedValue, {
-      toValue: 1,
-      duration: 100,
-      easing: Easing.linear,
-      useNativeDriver: true,
-    }).start();
-  };
-
   const {
-    monthlyBudget,
     symbol,
     currency,
     region,
@@ -75,43 +55,34 @@ const Questionnaire = ({navigation}) => {
     getSymbol,
   } = useStore();
 
+  // Separate state for the TextInput's string value
+  const [budgetInput, setBudgetInput] = useState('');
+
   useEffect(() => {
-    const loadDefaultValues = async () => {
-      const storedMonthlyBudget = await getMonthlyBudget();
+    const loadInitialValues = async () => {
+      const storedBudget = await getMonthlyBudget();
       const storedCurrency = await getCurrency();
       const storedRegion = await getRegion();
-      const storedCarryOverBudget = await getCarryOverBudget();
+      const storedCarryOver = await getCarryOverBudget();
+      const storedSymbol = await getSymbol();
 
-      if (storedMonthlyBudget) {
-        setMonthlyBudget(storedMonthlyBudget);
+      // Initialize budgetInput with the string version of the stored budget
+      if (storedBudget !== null && storedBudget !== undefined) {
+        setBudgetInput(String(storedBudget));
       }
-      if (storedCurrency) {
-        setCurrency(storedCurrency);
-      }
-      if (storedRegion) {
-        setRegion(storedRegion);
-      }
-      if (storedCarryOverBudget !== undefined) {
-        setCarryOverBudget(storedCarryOverBudget);
-      }
+      if (storedCurrency) setCurrency(storedCurrency);
+      if (storedRegion) setRegion(storedRegion);
+      if(storedSymbol) setSymbol(storedSymbol);
+      if (storedCarryOver !== undefined) setCarryOverBudget(storedCarryOver);
     };
 
-    loadDefaultValues();
-  }, [
-    setMonthlyBudget,
-    setCurrency,
-    setRegion,
-    setCarryOverBudget,
-    getMonthlyBudget,
-    getCurrency,
-    getRegion,
-    getCarryOverBudget,
-  ]);
+    loadInitialValues();
+  }, []); // Empty dependency array for one-time execution
 
-  const handleRegionChange = selectedRegion => {
+  const handleRegionChange = (selectedRegion) => {
     setRegion(selectedRegion);
     const selectedCurrencyData = currencyData.find(
-      item => item.Region === selectedRegion,
+      (item) => item.Region === selectedRegion
     );
     if (selectedCurrencyData) {
       setCurrency(selectedCurrencyData.Currency);
@@ -120,23 +91,36 @@ const Questionnaire = ({navigation}) => {
   };
 
   const handleSubmit = async () => {
-    const budget = parseFloat(monthlyBudget);
-    if (isNaN(budget) || budget <= 0) {
-      Alert.alert(
-        'Invalid Input',
-        'Please enter a valid positive monthly budget.',
-      );
+    // Parse the string to a float *here*
+    const budget = parseFloat(budgetInput);
+
+    if (isNaN(budget)) {
+      Alert.alert('Invalid Input', 'Please enter a valid budget amount.');
       return;
     }
 
-    setMonthlyBudget(monthlyBudget);
-    setCurrency(currency);
-    setRegion(region);
-    setCarryOverBudget(carryOverBudget);
-
+    // Now set the *number* in your store
+    setMonthlyBudget(budget);
     await saveToStorage();
-
     navigation.replace('Home');
+  };
+
+    const handlePressIn = () => {
+    Animated.timing(animatedValue, {
+      toValue: 0.95,
+      duration: 100,
+      easing: Easing.linear,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.timing(animatedValue, {
+      toValue: 1,
+      duration: 100,
+      easing: Easing.linear,
+      useNativeDriver: true,
+    }).start();
   };
 
   return (
@@ -152,13 +136,14 @@ const Questionnaire = ({navigation}) => {
             style={[
               styles.inputWrapper,
               focusedInput && styles.inputWrapperFocused,
-            ]}>
+            ]}
+          >
             <Icon name="money-bill" size={24} color={theme.colors.primary} />
             <TextInput
               style={styles.input}
               keyboardType="numeric"
-              value={monthlyBudget}
-              onChangeText={setMonthlyBudget}
+              value={budgetInput} // Use the budgetInput state
+              onChangeText={setBudgetInput} // Update the budgetInput state
               placeholder="Enter monthly budget"
               placeholderTextColor={theme.colors.placeholder}
               onFocus={() => setFocusedInput(true)}
@@ -174,8 +159,9 @@ const Questionnaire = ({navigation}) => {
             <Picker
               selectedValue={region}
               style={styles.picker}
-              onValueChange={handleRegionChange}>
-              {currencyData.map(item => (
+              onValueChange={handleRegionChange}
+            >
+              {currencyData.map((item) => (
                 <Picker.Item
                   key={item.Region}
                   label={item.Region}
@@ -196,7 +182,7 @@ const Questionnaire = ({navigation}) => {
           <Switch
             value={carryOverBudget}
             onValueChange={setCarryOverBudget}
-            trackColor={{false: '#767577', true: theme.colors.primary}}
+            trackColor={{ false: '#767577', true: theme.colors.primary }}
             thumbColor={carryOverBudget ? theme.colors.accent : '#f4f3f4'}
           />
         </View>
@@ -205,15 +191,17 @@ const Questionnaire = ({navigation}) => {
           style={[
             styles.buttonContainer,
             {
-              transform: [{scale: animatedValue}],
+              transform: [{ scale: animatedValue }],
             },
-          ]}>
+          ]}
+        >
           <TouchableOpacity
             activeOpacity={1}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
             onPress={handleSubmit}
-            style={styles.button}>
+            style={styles.button}
+          >
             <Text style={styles.buttonText}>Get Started</Text>
           </TouchableOpacity>
         </Animated.View>
