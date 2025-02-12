@@ -64,6 +64,22 @@ const Home = () => {
 
   const chartSize = 330;
 
+  useEffect(() => {
+    const loadData = async () => {
+      if (isFocused) {
+        const store = useStore.getState();
+        await store._loadInitialData();
+      }
+    };
+    loadData();
+  }, [isFocused]);
+
+  useEffect(() => {
+    const currentMonth = new Date().toISOString().substring(0, 7);
+    const monthExpenses = getExpenses(currentMonth) || [];
+    setCurrentMonthExpenses(monthExpenses);
+  }, [expenses, getExpenses, isFocused]);
+
   // Only run animations when the screen is focused
   useEffect(() => {
       if (isFocused) {
@@ -91,12 +107,6 @@ const Home = () => {
       }
   }, [isFocused]); // Depend on isFocused
 
-
-  useEffect(() => {
-    const currentMonth = new Date().toISOString().substring(0, 7);
-    const monthExpenses = getExpenses(currentMonth) || [];
-    setCurrentMonthExpenses(monthExpenses);
-  }, [expenses, getExpenses, isFocused]); //re-calculate on focus
 
   const currentMonth = new Date().toISOString().substring(0, 7);
   const currentMonthBudget = budgets[currentMonth] || monthlyBudget || 0;
@@ -155,7 +165,7 @@ const Home = () => {
         <SafeAreaView style={styles.container}>
           <LinearGradient colors={['#f5fcff', '#e0f7fa']} style={styles.linearGradient}>
           <Header
-              opacity={opacity}
+              opacity={1}
               handleSettings={handleSettings}
               handleOpenBackupMenu={handleOpenBackupMenu}
             />

@@ -62,9 +62,6 @@ const theme = {
 };
 
 const App = () => {
-  React.useEffect(() => {
-    initializeBudgetUpdater();
-  }, []);
 
   return (
     <PaperProvider theme={theme}>

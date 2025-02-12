@@ -75,20 +75,20 @@ const Header = ({ opacity, handleSettings, handleOpenBackupMenu }) => {
           <View style={styles.iconContainer}>
             <IconButton
               icon="cog-outline"
-              iconColor={theme.colors.primary}
+              iconColor={"#008080"}
               size={24}
               onPress={handleSettings}
               style={styles.iconButton}
-              rippleColor={theme.colors.primary}
+              rippleColor={"#008080"}
               animated={true}
             />
             <IconButton
               icon="cloud-upload-outline"
-              iconColor={theme.colors.primary}
+              iconColor={"#008080"}
               size={24}
               onPress={handleOpenBackupMenu}
               style={styles.iconButton}
-              rippleColor={theme.colors.primary}
+              rippleColor={"#008080"}
               animated={true}
             />
           </View>

@@ -10,7 +10,11 @@ import isValidPositiveNumber from '../utils/isValidPositiveNumber';
 
 const STORAGE_KEY = '@budgetAppData';
 
-
+// Create a function to handle hydration
+const hydrateStore = async () => {
+  const store = useStore.getState();
+  await store._loadInitialData();
+};
 
 const useStore = create((set, get) => ({
   budgets: {},
@@ -341,8 +345,18 @@ const useStore = create((set, get) => ({
     try {
       const state = get();
       const { loading, ...stateToSave } = state;
-      const filePath = `${RNFS.DocumentDirectoryPath}/${STORAGE_KEY}.json`;
-      await RNFS.writeFile(filePath, JSON.stringify(stateToSave), 'utf8');
+      
+      // Save to both storage mechanisms
+      await Promise.all([
+        // Save to AsyncStorage
+        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave)),
+        // Save to file system
+        RNFS.writeFile(
+          `${RNFS.DocumentDirectoryPath}/${STORAGE_KEY}.json`,
+          JSON.stringify(stateToSave),
+          'utf8'
+        )
+      ]);
     } catch (error) {
       console.error('Failed to persist data', error);
     }
@@ -351,99 +365,44 @@ const useStore = create((set, get) => ({
   _loadInitialData: async () => {
     set({ loading: true });
     try {
-      // Attempt to read from a file
-      const filePath = `${RNFS.DocumentDirectoryPath}/${STORAGE_KEY}.json`;
-      const fileExists = await RNFS.exists(filePath);
+      // Try loading from both storage mechanisms
+      const [asyncData, fileData] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEY),
+        RNFS.exists(`${RNFS.DocumentDirectoryPath}/${STORAGE_KEY}.json`)
+          .then(exists => exists ? RNFS.readFile(`${RNFS.DocumentDirectoryPath}/${STORAGE_KEY}.json`, 'utf8') : null)
+      ]);
 
-      if (fileExists) {
-        const storedData = await RNFS.readFile(filePath, 'utf8');
-        if (storedData) {
-          const parsedData = JSON.parse(storedData);
-          
-          // Load stored data if it exists
-          if (parsedData) {
-            const loadedTags = Array.isArray(parsedData.tags) ? parsedData.tags : [];
-            const loadedMonthlyBudget = parsedData.monthlyBudget !== undefined ? Number(parsedData.monthlyBudget) : 0;
-            
-            // If we have stored tags, use them
-            if (loadedTags.length > 0) {
-              set({ 
-                ...parsedData, 
-                tags: loadedTags,
-                monthlyBudget: loadedMonthlyBudget 
-              });
-            } else {
-              // Only use default tags if no stored tags exist
-              const initialTags = Object.entries(defaultTagsConfig).map(([key, config]) => ({
-                id: uuid.v4(),
-                name: key,
-                label: config.label,
-                color: config.color,
-                icon: config.icon,
-                isCustom: false,
-                createdAt: new Date().toISOString()
-              }));
-              set({ 
-                ...parsedData, 
-                tags: initialTags,
-                monthlyBudget: loadedMonthlyBudget 
-              });
-            }
-            await get().checkAndUpdateBudget();
-            return;
-          }
-        }
-      }
-
-      // If no file, try AsyncStorage (for migration)
-      const storedData = await AsyncStorage.getItem(STORAGE_KEY);
+      // Use the most recent data (prefer file system over AsyncStorage)
+      const storedData = fileData || asyncData;
+      
       if (storedData) {
         const parsedData = JSON.parse(storedData);
-        const loadedTags = Array.isArray(parsedData.tags) ? parsedData.tags : [];
-        const loadedMonthlyBudget = parsedData.monthlyBudget !== undefined ? Number(parsedData.monthlyBudget) : 0;
-        
-        // If we have stored tags in AsyncStorage, use them
-        if (loadedTags.length > 0) {
+        if (parsedData) {
+          const loadedTags = Array.isArray(parsedData.tags) ? parsedData.tags : [];
+          const loadedMonthlyBudget = parsedData.monthlyBudget !== undefined ? Number(parsedData.monthlyBudget) : 0;
+          
           set({ 
             ...parsedData, 
-            tags: loadedTags,
-            monthlyBudget: loadedMonthlyBudget 
+            tags: loadedTags.length > 0 ? loadedTags : get().tags,
+            monthlyBudget: loadedMonthlyBudget,
+            loading: false
           });
-        } else {
-          // Only use default tags if no stored tags exist
-          const initialTags = Object.entries(defaultTagsConfig).map(([key, config]) => ({
-            id: uuid.v4(),
-            name: key,
-            label: config.label,
-            color: config.color,
-            icon: config.icon,
-            isCustom: false,
-            createdAt: new Date().toISOString()
-          }));
-          set({ 
-            ...parsedData, 
-            tags: initialTags,
-            monthlyBudget: loadedMonthlyBudget 
-          });
+          
+          await get().checkAndUpdateBudget();
+          return;
         }
-        
-        await get().checkAndUpdateBudget();
-        await get()._persistData(); // Save to file after migrating
-        await AsyncStorage.removeItem(STORAGE_KEY); // Remove from AsyncStorage
-      } else {
-        // No stored data at all, initialize with default tags
-        const initialTags = Object.entries(defaultTagsConfig).map(([key, config]) => ({
-          id: uuid.v4(),
-          name: key,
-          label: config.label,
-          color: config.color,
-          icon: config.icon,
-          isCustom: false,
-          createdAt: new Date().toISOString()
-        }));
-        set({ tags: initialTags });
-        await get()._persistData();
       }
+      const initialTags = Object.entries(defaultTagsConfig).map(([key, config]) => ({
+        id: uuid.v4(),
+        name: key,
+        label: config.label,
+        color: config.color,
+        icon: config.icon,
+        isCustom: false,
+        createdAt: new Date().toISOString()
+      }));
+      set({ tags: initialTags });
+      await get()._persistData();
     } catch (error) {
       console.error('Failed to load initial data', error);
       // On error, only set default tags if we don't have any tags
@@ -550,53 +509,20 @@ const useStore = create((set, get) => ({
   },
 }));
 
-// --- AppState Listener (Outside the store) ---
+// Initialize store with proper hydration
+hydrateStore();
 
-let appStateSubscription;
-let lastSaveTimestamp = Date.now();
-const SAVE_THROTTLE_MS = 1000; // Throttle saves to once per second
-
-const initializeAppStateListener = () => {
-  if (appStateSubscription) {
-    appStateSubscription.remove(); // Remove any existing listener
-  }
-
-  appStateSubscription = AppState.addEventListener('change', nextAppState => {
-    const store = useStore.getState();
-    
-    if (nextAppState === 'active') {
-      // When app becomes active, load latest data and check budget
-      store._loadInitialData();
-      store.checkAndUpdateBudget();
-    } else if (nextAppState === 'background' || nextAppState === 'inactive') {
-      // Save state when app goes to background or becomes inactive
-      const currentTime = Date.now();
-      if (currentTime - lastSaveTimestamp >= SAVE_THROTTLE_MS) {
-        store._persistData();
-        lastSaveTimestamp = currentTime;
-      }
-    }
-  });
-};
-
-// Subscribe to store changes for automatic saving
-useStore.subscribe((state, prevState) => {
-  // Only save if actual data changed (ignore loading state changes)
-  const { loading: currentLoading, ...currentState } = state;
-  const { loading: prevLoading, ...prevStateData } = prevState;
+// Set up app state listener for background/foreground transitions
+AppState.addEventListener('change', (nextAppState) => {
+  const store = useStore.getState();
   
-  if (JSON.stringify(currentState) !== JSON.stringify(prevStateData)) {
-    const currentTime = Date.now();
-    if (currentTime - lastSaveTimestamp >= SAVE_THROTTLE_MS) {
-      useStore.getState()._persistData();
-      lastSaveTimestamp = currentTime;
-    }
+  if (nextAppState === 'active') {
+    // App came to foreground
+    hydrateStore();
+  } else if (nextAppState === 'background' || nextAppState === 'inactive') {
+    // App went to background
+    store._persistData();
   }
 });
-
-export const initializeBudgetUpdater = () => {
-  initializeAppStateListener();
-  useStore.getState()._loadInitialData();
-};
 
 export default useStore;
