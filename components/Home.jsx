@@ -62,7 +62,7 @@ const Home = () => {
   const [selectedTag, setSelectedTag] = useState(null);
   const tags = getTags();
 
-  const chartSize = 250;
+  const chartSize = 330;
 
   // Only run animations when the screen is focused
   useEffect(() => {
@@ -122,9 +122,12 @@ const Home = () => {
     ? allExpenses.filter(expense => expense.tags && expense.tags.includes(selectedTag))
     : allExpenses;
 
-  const handleAddExpense = (expenseData) => {
-    const selectedMonth = expenseData.date.substring(0, 7);
-    addExpense(selectedMonth, expenseData);
+  const handleAddExpense = ({ month, expense }) => {
+    if (!month || !expense) {
+      console.error('Invalid expense data');
+      return;
+    }
+    addExpense({ month, expense });
   };
 
   const handleSettings = () => {

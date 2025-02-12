@@ -1,109 +1,167 @@
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Easing } from 'react-native';
-import { Text, useTheme, Surface } from 'react-native-paper';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, Animated, Easing, Pressable } from 'react-native';
+import { Text, useTheme, Surface, Portal, Modal, Button } from 'react-native-paper';
+import { GestureHandlerRootView, TapGestureHandler } from 'react-native-gesture-handler';
+import LinearGradient from 'react-native-linear-gradient';
 
-const CustomPieChart = ({ budget, expenses, symbol = '$', chartSize = 200 }) => {
+const CustomPieChart = ({ 
+  budget = 0, 
+  expenses = 0, 
+  symbol = '$', 
+  chartSize = 200,
+  onPress
+}) => {
   const theme = useTheme();
+  const [showDetails, setShowDetails] = useState(false);
   const expenseAngle = useRef(new Animated.Value(0)).current;
   const rightExpenseAngle = useRef(new Animated.Value(0)).current;
-  const remainingAmount = budget - expenses;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const remainingAmount = Math.max(0, budget - expenses);
   const remainingPercentage = budget === 0 ? 0 : Math.round((remainingAmount / budget) * 100);
+  const expensePercentage = budget === 0 ? 0 : Math.round((expenses / budget) * 100);
   const innerSize = chartSize * 0.9;
 
   useEffect(() => {
-    const total = budget;
-    let expenseRatio = 100;
+    animateChart();
+  }, [budget, expenses]);
 
-    if (total > 0 && expenses > 0) {
-      expenseRatio = Math.min(1, expenses / total);
-    }
+  const animateChart = () => {
+    const expenseRatio = Math.min(1, Math.max(0, expenses / budget));
+    const finalExpenseAngle = expenseRatio * 360-30;
 
-    const finalExpenseAngle = expenseRatio * 360;
-    
-    // Reset both animations
     expenseAngle.setValue(0);
     rightExpenseAngle.setValue(0);
 
-    // Animate left half (0 to 180 degrees)
-    Animated.timing(expenseAngle, {
-      toValue: Math.min(180, finalExpenseAngle),
-      duration: 800,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
-
-    // Animate right half (180 to 360 degrees)
-    if (finalExpenseAngle > 180) {
-      Animated.timing(rightExpenseAngle, {
-        toValue: Math.min(180, finalExpenseAngle - 180),
-        duration: 800,
-        easing: Easing.out(Easing.cubic),
+    Animated.parallel([
+      Animated.timing(expenseAngle, {
+        toValue: Math.min(180, finalExpenseAngle),
+        duration: 1000,
+        easing: Easing.bezier(0.4, 0, 0.2, 1),
         useNativeDriver: false,
-      }).start();
-    }
-  }, [budget, expenses, expenseAngle, rightExpenseAngle]);
+      }),
+      finalExpenseAngle > 180 
+        ? Animated.timing(rightExpenseAngle, {
+            toValue: Math.min(180, finalExpenseAngle - 180),
+            duration: 1000,
+            easing: Easing.bezier(0.4, 0, 0.2, 1),
+            useNativeDriver: false,
+          })
+        : null,
+    ].filter(Boolean)).start();
+  };
+
+  const handlePress = () => {
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    setShowDetails(true);
+    if (onPress) onPress();
+  };
 
   const leftRotation = expenseAngle.interpolate({
     inputRange: [0, 180],
-    outputRange: ['0deg', '180deg'],
+    outputRange: ['0deg', '-180deg'],  // Changed to negative for clockwise rotation
   });
 
   const rightRotation = rightExpenseAngle.interpolate({
     inputRange: [0, 180],
-    outputRange: ['0deg', '180deg'],
+    outputRange: ['0deg', '-180deg'],  // Changed to negative for clockwise rotation
   });
 
- 
-
   return (
-    <Surface style={[styles.chartContainer, { width: chartSize, height: chartSize }]} elevation={2}>
-      <View style={[styles.innerContainer, { width: innerSize, height: innerSize }]}>
-        
-        <View style={[styles.baseCircle, { backgroundColor: '#00B4A2' }]} />
+    <GestureHandlerRootView>
+      <TapGestureHandler onActivated={handlePress}>
+        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+          <Surface style={[styles.chartContainer, { width: chartSize, height: chartSize }]} elevation={3}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+              style={styles.gradient}
+            />
+            <View style={[styles.innerContainer, { width: innerSize, height: innerSize }]}>
+              <View style={[styles.baseCircle, { backgroundColor: '#008080' }]} /> {/* Changed to teal for remaining balance */}
 
-        {/* Left half container */}
-        <View style={styles.leftHalf}>
-          <Animated.View
-            style={[
-              styles.slice,
-              {
-                backgroundColor: '#B00020',
-                transform: [{ rotate: leftRotation }],
-              },
-            ]}
-          />
-        </View>
+              <View style={styles.leftHalf}>
+                <Animated.View
+                  style={[
+                    styles.slice,
+                    {
+                      backgroundColor: theme.colors.error, // Using error color for expenses
+                      transform: [{ rotate: leftRotation }],
+                    },
+                  ]}
+                />
+              </View>
 
-        {/* Right half container */}
-        <View style={styles.rightHalf}>
-          <Animated.View
-            style={[
-              styles.slice,
-              {
-                backgroundColor: '#B00020',
-                transform: [{ rotate: rightRotation }],
-              },
-            ]}
-          />
-        </View>
+              <View style={styles.rightHalf}>
+                <Animated.View
+                  style={[
+                    styles.slice,
+                    {
+                      backgroundColor: theme.colors.error, // Using error color for expenses
+                      transform: [{ rotate: rightRotation }],
+                    },
+                  ]}
+                />
+              </View>
 
-        {/* Border */}
-        <View style={[styles.border, { borderColor: '#008080' }]} />
+              <View style={[styles.centerCircle, { backgroundColor: theme.colors.background }]}>
+                <Text variant="headlineMedium" style={styles.amountText}>
+                  {symbol}{remainingAmount.toLocaleString()}
+                </Text>
+                <Text variant="labelMedium" style={styles.percentageText}>
+                  {remainingPercentage}% Left
+                </Text>
+              </View>
+            </View>
+          </Surface>
+        </Animated.View>
+      </TapGestureHandler>
 
-        {/* Center white circle for text */}
-        <View style={[styles.centerCircle, { backgroundColor: '#ffffff' }]}>
-          <Text variant="titleLarge" style={[styles.amountText, { color: '#008080' }]}>
-            {symbol}
-            {remainingAmount.toLocaleString()}
-          </Text>
-          <Text variant="labelMedium" style={[styles.percentageText, { color: '#008080' }]}>
-            Remaining ({remainingPercentage}%)
-          </Text>
-        </View>
-      </View>
-    </Surface>
+      <Portal>
+        <Modal
+          visible={showDetails}
+          onDismiss={() => setShowDetails(false)}
+          contentContainerStyle={styles.modalContent}
+        >
+          <Text variant="titleLarge" style={styles.modalTitle}>Budget Details</Text>
+          <View style={styles.detailRow}>
+            <Text variant="bodyLarge">Total Budget:</Text>
+            <Text variant="bodyLarge" style={styles.detailValue}>
+              {symbol}{budget.toLocaleString()}
+            </Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Text variant="bodyLarge">Expenses:</Text>
+            <Text variant="bodyLarge" style={[styles.detailValue, { color: theme.colors.error }]}>
+              {symbol}{expenses.toLocaleString()} ({expensePercentage}%)
+            </Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Text variant="bodyLarge">Remaining:</Text>
+            <Text variant="bodyLarge" style={[styles.detailValue, { color: '#008080' }]}>
+              {symbol}{remainingAmount.toLocaleString()} ({remainingPercentage}%)
+            </Text>
+          </View>
+          <Button mode="contained" onPress={() => setShowDetails(false)} style={styles.closeButton}>
+            Close
+          </Button>
+        </Modal>
+      </Portal>
+    </GestureHandlerRootView>
   );
 };
+
 
 const styles = StyleSheet.create({
   chartContainer: {
@@ -111,6 +169,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    overflow: 'hidden',
+  },
+  gradient: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
   },
   innerContainer: {
     position: 'relative',
@@ -146,11 +210,11 @@ const styles = StyleSheet.create({
   },
   centerCircle: {
     position: 'absolute',
-    width: '75%',
-    height: '75%',
+    width: '80%',
+    height: '80%',
     borderRadius: 1000,
-    top: '12.5%',
-    left: '12.5%',
+    top: '10%',
+    left: '10%',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
@@ -162,21 +226,39 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-  border: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    borderRadius: 1000,
-    borderWidth: 2,
-  },
   amountText: {
     fontWeight: 'bold',
     textAlign: 'center',
-    fontSize: 24,
   },
   percentageText: {
     textAlign: 'center',
     marginTop: 4,
+    opacity: 0.7,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    margin: 20,
+    borderRadius: 12,
+  },
+  modalTitle: {
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  detailValue: {
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    backgroundColor: 'red',
+    marginTop: 20,
   },
 });
 

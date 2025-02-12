@@ -50,17 +50,29 @@ const AddExpenseModal = ({ isVisible, onClose, onAddExpense }) => {
       return;
     }
 
-    const selectedDate = date.toISOString().split('T')[0];
-    onAddExpense({
-      date: selectedDate,
-      name: expenseName,
+    // Format date as YYYY-MM
+    const month = date.toISOString().slice(0, 7);
+    // Format full date as YYYY-MM-DD
+    const fullDate = date.toISOString().split('T')[0];
+    
+    const expenseData = {
+      date: fullDate,
+      name: expenseName.trim(),
       amount: parseFloat(expenseAmount),
       tags: selectedTags,
+    };
+
+    onAddExpense({
+      month,
+      expense: expenseData
     });
+    
+    // Reset form
     onClose();
     setExpenseName('');
     setExpenseAmount('');
     setSelectedTags([]);
+    setDate(new Date());
   }, [date, expenseName, expenseAmount, selectedTags, onAddExpense, onClose]);
 
   const handleDateChange = useCallback((event, selectedDate) => {

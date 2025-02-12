@@ -6,12 +6,11 @@ import DocumentPicker from 'react-native-document-picker';
 import uuid from 'react-native-uuid';
 import { AppState } from 'react-native';
 import defaultTagsConfig from './defaultTags'; // Import the config
+import isValidPositiveNumber from '../utils/isValidPositiveNumber';
 
 const STORAGE_KEY = '@budgetAppData';
 
-const isValidPositiveNumber = (value) => {
-  return typeof value === 'number' && value >= 0;
-};
+
 
 const useStore = create((set, get) => ({
   budgets: {},
@@ -82,31 +81,49 @@ const useStore = create((set, get) => ({
 
   getTags: () => get().tags,
 
-  addExpense: async (month, expenseObject) => {
-    if (!isValidPositiveNumber(expenseObject.amount)) {
-      console.error('Expense amount must be a positive number');
-      return;
-    }
-
-    const newExpense = {
-      ...expenseObject,
-      id: uuid.v4(),
-      tags: expenseObject.tags || [],
-      createdAt: new Date().toISOString()
-    };
-
-    set(state => {
-      const newExpenses = { ...state.expenses };
-      if (!newExpenses[month]) {
-        newExpenses[month] = [];
+  addExpense: async ({ month, expense }) => {
+    try {
+      if (!month || !expense || !expense.date) {
+        console.error('Invalid expense data format');
+        return false;
       }
-      newExpenses[month].push(newExpense);
-      return {
-        expenses: newExpenses,
-        remainingBalance: get().calculateRemainingBalance(),
+
+      const amount = parseFloat(expense.amount);
+      if (!isValidPositiveNumber(amount)) {
+        console.error('Expense amount must be a positive number');
+        return false;
+      }
+
+      const newExpense = {
+        ...expense,
+        amount, // Use the parsed float amount
+        id: uuid.v4(),
+        tags: expense.tags || [],
+        createdAt: new Date().toISOString()
       };
-    });
-    await get()._persistData(); //  call _persistData
+
+      set(state => {
+        const newExpenses = { ...state.expenses };
+        if (!newExpenses[month]) {
+          newExpenses[month] = [];
+        }
+        newExpenses[month].push(newExpense);
+        return {
+          expenses: newExpenses
+        };
+      });
+
+      // Calculate new remaining balance
+      const newBalance = get().calculateRemainingBalance();
+      set({ remainingBalance: newBalance });
+
+      // Persist the data
+      await get()._persistData();
+      return true;
+    } catch (error) {
+      console.error('Failed to add expense:', error);
+      return false;
+    }
   },
 
   updateExpense: async (month, expenseId, updatedExpense) => {
@@ -342,14 +359,38 @@ const useStore = create((set, get) => ({
         const storedData = await RNFS.readFile(filePath, 'utf8');
         if (storedData) {
           const parsedData = JSON.parse(storedData);
-
-           // Check if budgets OR expenses are already set
-          if (Object.keys(parsedData.budgets || {}).length > 0 || Object.keys(parsedData.expenses || {}).length > 0) {
+          
+          // Load stored data if it exists
+          if (parsedData) {
             const loadedTags = Array.isArray(parsedData.tags) ? parsedData.tags : [];
             const loadedMonthlyBudget = parsedData.monthlyBudget !== undefined ? Number(parsedData.monthlyBudget) : 0;
-            set({ ...parsedData, tags: loadedTags, monthlyBudget: loadedMonthlyBudget });
+            
+            // If we have stored tags, use them
+            if (loadedTags.length > 0) {
+              set({ 
+                ...parsedData, 
+                tags: loadedTags,
+                monthlyBudget: loadedMonthlyBudget 
+              });
+            } else {
+              // Only use default tags if no stored tags exist
+              const initialTags = Object.entries(defaultTagsConfig).map(([key, config]) => ({
+                id: uuid.v4(),
+                name: key,
+                label: config.label,
+                color: config.color,
+                icon: config.icon,
+                isCustom: false,
+                createdAt: new Date().toISOString()
+              }));
+              set({ 
+                ...parsedData, 
+                tags: initialTags,
+                monthlyBudget: loadedMonthlyBudget 
+              });
+            }
             await get().checkAndUpdateBudget();
-            return; // Exit if data loaded and is not empty
+            return;
           }
         }
       }
@@ -360,42 +401,37 @@ const useStore = create((set, get) => ({
         const parsedData = JSON.parse(storedData);
         const loadedTags = Array.isArray(parsedData.tags) ? parsedData.tags : [];
         const loadedMonthlyBudget = parsedData.monthlyBudget !== undefined ? Number(parsedData.monthlyBudget) : 0;
-        set({ ...parsedData, tags: loadedTags, monthlyBudget: loadedMonthlyBudget });
+        
+        // If we have stored tags in AsyncStorage, use them
+        if (loadedTags.length > 0) {
+          set({ 
+            ...parsedData, 
+            tags: loadedTags,
+            monthlyBudget: loadedMonthlyBudget 
+          });
+        } else {
+          // Only use default tags if no stored tags exist
+          const initialTags = Object.entries(defaultTagsConfig).map(([key, config]) => ({
+            id: uuid.v4(),
+            name: key,
+            label: config.label,
+            color: config.color,
+            icon: config.icon,
+            isCustom: false,
+            createdAt: new Date().toISOString()
+          }));
+          set({ 
+            ...parsedData, 
+            tags: initialTags,
+            monthlyBudget: loadedMonthlyBudget 
+          });
+        }
+        
         await get().checkAndUpdateBudget();
-        await get()._persistData(); // *Important*: Save to file after migrating
+        await get()._persistData(); // Save to file after migrating
         await AsyncStorage.removeItem(STORAGE_KEY); // Remove from AsyncStorage
       } else {
-            // Use the imported defaultTagsConfig
-            const initialTags = Object.entries(defaultTagsConfig).map(([key, config]) => ({
-                id: uuid.v4(),
-                name: key,
-                label: config.label,
-                color: config.color,
-                icon: config.icon,
-                isCustom: false,
-                createdAt: new Date().toISOString()
-            }));
-            set({ tags: initialTags });
-            await get()._persistData(); // Initial save if no data
-        }
-    } catch (error) {
-      console.error('Failed to load initial data', error);
-      // Fallback to default tags on error
-       const initialTags = Object.entries(defaultTagsConfig).map(([key, config]) => ({
-                id: uuid.v4(),
-                name: key,
-                label: config.label,
-                color: config.color,
-                icon: config.icon,
-                isCustom: false,
-                createdAt: new Date().toISOString()
-            }));
-      set({tags: initialTags});
-      await get()._persistData();
-    } finally {
-        const state = get();
-        if (!state.budgets || Object.keys(state.budgets).length === 0) {
-        // If no budget data has been loaded, only then set the defaults
+        // No stored data at all, initialize with default tags
         const initialTags = Object.entries(defaultTagsConfig).map(([key, config]) => ({
           id: uuid.v4(),
           name: key,
@@ -407,8 +443,26 @@ const useStore = create((set, get) => ({
         }));
         set({ tags: initialTags });
         await get()._persistData();
-        }
-        set({ loading: false });
+      }
+    } catch (error) {
+      console.error('Failed to load initial data', error);
+      // On error, only set default tags if we don't have any tags
+      const state = get();
+      if (!state.tags || state.tags.length === 0) {
+        const initialTags = Object.entries(defaultTagsConfig).map(([key, config]) => ({
+          id: uuid.v4(),
+          name: key,
+          label: config.label,
+          color: config.color,
+          icon: config.icon,
+          isCustom: false,
+          createdAt: new Date().toISOString()
+        }));
+        set({ tags: initialTags });
+        await get()._persistData();
+      }
+    } finally {
+      set({ loading: false });
     }
   },
 
