@@ -27,8 +27,11 @@ const CustomPieChart = ({
   }, [budget, expenses]);
 
   const animateChart = () => {
-    const expenseRatio = Math.min(1, Math.max(0, expenses / budget));
-    const finalExpenseAngle = expenseRatio * 360-30;
+    // Calculate the expense ratio (not the remaining ratio)
+    const expenseRatio = budget > 0 ? Math.min(1, expenses / budget) : 0;
+    // Convert to degrees, starting from the top (270 degrees)
+    const startAngle = -90; // Start from top
+    const finalExpenseAngle = expenseRatio * 360;
 
     expenseAngle.setValue(0);
     rightExpenseAngle.setValue(0);
@@ -51,6 +54,16 @@ const CustomPieChart = ({
     ].filter(Boolean)).start();
   };
 
+  const leftRotation = expenseAngle.interpolate({
+    inputRange: [0, 180],
+    outputRange: ['-90deg', '90deg'], // Start from top (-90 degrees)
+  });
+
+  const rightRotation = rightExpenseAngle.interpolate({
+    inputRange: [0, 180],
+    outputRange: ['-90deg', '90deg'], // Start from top (-90 degrees)
+  });
+
   const handlePress = () => {
     Animated.sequence([
       Animated.timing(scaleAnim, {
@@ -69,16 +82,6 @@ const CustomPieChart = ({
     if (onPress) onPress();
   };
 
-  const leftRotation = expenseAngle.interpolate({
-    inputRange: [0, 180],
-    outputRange: ['0deg', '-180deg'],  // Changed to negative for clockwise rotation
-  });
-
-  const rightRotation = rightExpenseAngle.interpolate({
-    inputRange: [0, 180],
-    outputRange: ['0deg', '-180deg'],  // Changed to negative for clockwise rotation
-  });
-
   return (
     <GestureHandlerRootView>
       <TapGestureHandler onActivated={handlePress}>
@@ -89,14 +92,16 @@ const CustomPieChart = ({
               style={styles.gradient}
             />
             <View style={[styles.innerContainer, { width: innerSize, height: innerSize }]}>
-              <View style={[styles.baseCircle, { backgroundColor: '#008080' }]} /> {/* Changed to teal for remaining balance */}
+              {/* Base circle is now red (expenses) */}
+              <View style={[styles.baseCircle, { backgroundColor: '#FF0000' }]} />
 
+              {/* The animated parts now show the remaining balance in green */}
               <View style={styles.leftHalf}>
                 <Animated.View
                   style={[
                     styles.slice,
                     {
-                      backgroundColor: theme.colors.error, // Using error color for expenses
+                      backgroundColor: '#4CAF50', // Green for remaining
                       transform: [{ rotate: leftRotation }],
                     },
                   ]}
@@ -108,7 +113,7 @@ const CustomPieChart = ({
                   style={[
                     styles.slice,
                     {
-                      backgroundColor: theme.colors.error, // Using error color for expenses
+                      backgroundColor: '#4CAF50', // Green for remaining
                       transform: [{ rotate: rightRotation }],
                     },
                   ]}
@@ -143,17 +148,21 @@ const CustomPieChart = ({
           </View>
           <View style={styles.detailRow}>
             <Text variant="bodyLarge">Expenses:</Text>
-            <Text variant="bodyLarge" style={[styles.detailValue, { color: theme.colors.error }]}>
+            <Text variant="bodyLarge" style={[styles.detailValue, { color: '#FF0000' }]}>
               {symbol}{expenses.toLocaleString()} ({expensePercentage}%)
             </Text>
           </View>
           <View style={styles.detailRow}>
             <Text variant="bodyLarge">Remaining:</Text>
-            <Text variant="bodyLarge" style={[styles.detailValue, { color: '#008080' }]}>
+            <Text variant="bodyLarge" style={[styles.detailValue, { color: '#4CAF50' }]}>
               {symbol}{remainingAmount.toLocaleString()} ({remainingPercentage}%)
             </Text>
           </View>
-          <Button mode="contained" onPress={() => setShowDetails(false)} style={styles.closeButton}>
+          <Button 
+            mode="contained" 
+            onPress={() => setShowDetails(false)} 
+            style={[styles.closeButton, { backgroundColor: '#FF0000' }]}
+          >
             Close
           </Button>
         </Modal>
