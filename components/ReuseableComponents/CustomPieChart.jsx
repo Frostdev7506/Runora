@@ -6,12 +6,15 @@ const CustomPieChart = ({ budget, expenses, symbol = '$', chartSize = 200 }) => 
   const theme = useTheme();
   const expenseAngle = useRef(new Animated.Value(0)).current;
   const rightExpenseAngle = useRef(new Animated.Value(0)).current;
+  const remainingAmount = budget - expenses;
+  const remainingPercentage = budget === 0 ? 0 : Math.round((remainingAmount / budget) * 100);
+  const innerSize = chartSize * 0.9;
 
   useEffect(() => {
     const total = budget;
-    let expenseRatio = 0;
+    let expenseRatio = 100;
 
-    if (total > 0) {
+    if (total > 0 && expenses > 0) {
       expenseRatio = Math.min(1, expenses / total);
     }
 
@@ -50,15 +53,13 @@ const CustomPieChart = ({ budget, expenses, symbol = '$', chartSize = 200 }) => 
     outputRange: ['0deg', '180deg'],
   });
 
-  const remainingAmount = budget - expenses;
-  const remainingPercentage = budget === 0 ? 0 : Math.round((remainingAmount / budget) * 100);
-  const innerSize = chartSize * 0.9;
+ 
 
   return (
     <Surface style={[styles.chartContainer, { width: chartSize, height: chartSize }]} elevation={2}>
       <View style={[styles.innerContainer, { width: innerSize, height: innerSize }]}>
-        {/* Base circle (light purple) */}
-        <View style={[styles.baseCircle, { backgroundColor: '#e0f7fa' }]} />
+        
+        <View style={[styles.baseCircle, { backgroundColor: '#00B4A2' }]} />
 
         {/* Left half container */}
         <View style={styles.leftHalf}>
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
     borderRadius: 1000,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 10,
+    padding: 20,
   },
   innerContainer: {
     position: 'relative',
