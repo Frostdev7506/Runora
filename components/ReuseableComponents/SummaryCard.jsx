@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   value: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#ffffff',
   },

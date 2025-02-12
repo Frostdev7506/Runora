@@ -1,4 +1,4 @@
-// Home.jsx (Modified)
+// Home.jsx
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -10,11 +10,9 @@ import {
   ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
-import Ionicons from 'react-native-vector-icons/Ionicons';  // Keep this import
 import useStore from '../store/store';
 import ExpenseCard from './ExpenseCard';
-import { useNavigation } from '@react-navigation/native';
-import AnimatedTitle from './ReuseableComponents/AnimatedTitle';
+import { useNavigation, useIsFocused } from '@react-navigation/native'; // Import useIsFocused
 import AddExpenseModal from './ReuseableComponents/AddExpenseModal';
 import BackupMenu from './BackupMenu';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -28,9 +26,11 @@ import {
   Divider,
   Button,
   Title,
+  Paragraph
 } from 'react-native-paper';
 import CustomPieChart from './ReuseableComponents/CustomPieChart';
 import SummaryCard from './ReuseableComponents/SummaryCard';
+import Header from './ReuseableComponents/Header';
 
 
 const Home = () => {
@@ -46,7 +46,6 @@ const Home = () => {
     currency,
     region,
     monthlyBudget,
-    loadFromStorage,
     addExpense,
     loading,
     remainingBalance,
@@ -54,6 +53,7 @@ const Home = () => {
     getTags
   } = useStore();
   const navigation = useNavigation();
+  const isFocused = useIsFocused(); // Get focus state
   const expenses = useStore(state => state.expenses || []);
   const [currentMonthExpenses, setCurrentMonthExpenses] = useState([]);
   const [isModalVisible, setModalVisible] = useState(false);
@@ -62,38 +62,41 @@ const Home = () => {
   const [selectedTag, setSelectedTag] = useState(null);
   const tags = getTags();
 
-
   const chartSize = 250;
 
+  // Only run animations when the screen is focused
   useEffect(() => {
-    const initialize = async () => {
-      await loadFromStorage();
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 800,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      }).start(() => {
-        const cardAnimations = cardOpacity.map((cardOpac, index) => {
-          return Animated.timing(cardOpac, {
-            toValue: 1,
-            duration: 400,
-            delay: 50 * (index + 1),
-            easing: Easing.ease,
-            useNativeDriver: true,
-          });
+      if (isFocused) {
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }).start(() => {
+          const cardAnimations = cardOpacity.map((cardOpac, index) =>
+            Animated.timing(cardOpac, {
+              toValue: 1,
+              duration: 400,
+              delay: 50 * (index + 1),
+              easing: Easing.ease,
+              useNativeDriver: true,
+            })
+          );
+          Animated.parallel(cardAnimations).start();
         });
-        Animated.parallel(cardAnimations).start();
-      });
-    };
-    initialize();
-  }, [loadFromStorage]);
+      } else {
+        // Reset animation values when screen loses focus
+        opacity.setValue(0);
+        cardOpacity.forEach(cardOpac => cardOpac.setValue(0));
+      }
+  }, [isFocused]); // Depend on isFocused
+
 
   useEffect(() => {
     const currentMonth = new Date().toISOString().substring(0, 7);
     const monthExpenses = getExpenses(currentMonth) || [];
     setCurrentMonthExpenses(monthExpenses);
-  }, [expenses, getExpenses]);
+  }, [expenses, getExpenses, isFocused]); //re-calculate on focus
 
   const currentMonth = new Date().toISOString().substring(0, 7);
   const currentMonthBudget = budgets[currentMonth] || monthlyBudget || 0;
@@ -113,18 +116,11 @@ const Home = () => {
     );
   }, 0);
 
-  const totalBudget = Object.keys(budgets || {}).reduce(
-    (total, month) => total + (budgets[month] || 0),
-    0,
-  );
-
   const allExpenses = Object.values(expenses || {}).flat();
-
 
   const filteredExpenses = selectedTag
     ? allExpenses.filter(expense => expense.tags && expense.tags.includes(selectedTag))
     : allExpenses;
-
 
   const handleAddExpense = (expenseData) => {
     const selectedMonth = expenseData.date.substring(0, 7);
@@ -142,7 +138,6 @@ const Home = () => {
     setBackupModalVisible(false);
   };
 
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -156,41 +151,22 @@ const Home = () => {
       <SafeAreaProvider>
         <SafeAreaView style={styles.container}>
           <LinearGradient colors={['#f5fcff', '#e0f7fa']} style={styles.linearGradient}>
-            <View style={styles.headerStyles}>
-              <Animated.View style={{ opacity }}>
-              </Animated.View>
-              <Text style={styles.headerTitle}>
-                <AnimatedTitle>Home</AnimatedTitle>
-              </Text>
-
-              <View style={styles.iconContainer}>
-                <IconButton
-                  icon="cog-outline"
-                  iconColor="#008080"
-                  size={28}
-                  onPress={handleSettings}
-                />
-                <IconButton
-                  icon="cloud-upload-outline"
-                  iconColor="#008080"
-                  size={28}
-                  onPress={handleOpenBackupMenu}
-                />
-              </View>
-            </View>
-
+          <Header
+              opacity={opacity}
+              handleSettings={handleSettings}
+              handleOpenBackupMenu={handleOpenBackupMenu}
+            />
             <ScrollView
               style={styles.scrollView}
               scrollIndicatorInsets={{ right: 1 }}
             >
               <View style={styles.statsContainer}>
-                {/* Use the SummaryCard component */}
                 <SummaryCard
                   iconName="shopping-cart"
                   title="Total Expenses"
-                  value={totalExpenses}
+                  value={totalExpenses.toLocaleString()}
                   symbol={symbolValue}
-                  opacity={cardOpacity[2]}
+                  opacity={cardOpacity[0]}
                 />
 
                 {showAdditionalCards && (
@@ -198,14 +174,14 @@ const Home = () => {
                     <SummaryCard
                       iconName="bank"
                       title="Monthly Budget"
-                      value={monthlyBudgetValue}
+                      value={monthlyBudgetValue.toLocaleString()}
                       symbol={symbolValue}
-                      opacity={cardOpacity[2]}
+                      opacity={cardOpacity[1]}
                     />
                     <SummaryCard
                       iconName="money"
                       title="Remaining Budget"
-                      value={remainingBalance}
+                      value={remainingBalance.toLocaleString()}
                       symbol={symbolValue}
                       opacity={cardOpacity[2]}
                     />
@@ -317,7 +293,6 @@ const Home = () => {
               />
             </Portal>
 
-
             <PaperModal
               visible={isModalVisible}
               onDismiss={() => setModalVisible(false)}
@@ -350,20 +325,6 @@ const styles = StyleSheet.create({
   },
   linearGradient: {
     flex: 1,
-  },
-  headerStyles: {
-    padding: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#008080',
-  },
-  iconContainer: {
-    flexDirection: 'row',
   },
   loadingContainer: {
     flex: 1,

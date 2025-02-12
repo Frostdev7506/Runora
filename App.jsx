@@ -38,7 +38,7 @@ const theme = {
 };
 
 const App = () => {
-    const { loadFromStorage } = useStore();
+    
 
     React.useEffect(() => {
       initializeBudgetUpdater();

@@ -1,25 +1,16 @@
+// store/store.js
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNFS from 'react-native-fs';
 import DocumentPicker from 'react-native-document-picker';
 import uuid from 'react-native-uuid';
-import { AppState } from 'react-native'; // Import AppState
+import { AppState } from 'react-native';
+import defaultTagsConfig from './defaultTags'; // Import the config
 
 const STORAGE_KEY = '@budgetAppData';
 
 const isValidPositiveNumber = (value) => {
   return typeof value === 'number' && value >= 0;
-};
-
-const defaultTagsConfig = {
-  food: { icon: '🍔', color: '#FF6B6B', label: 'Food & Dining' },
-  transport: { icon: '🚗', color: '#4ECDC4', label: 'Transportation' },
-  shopping: { icon: '🛍️', color: '#45B7D1', label: 'Shopping' },
-  groceries: { icon: '🛒', color: '#A7D1AB', label: 'Groceries' },
-  entertainment: { icon: '🎮', color: '#96CEB4', label: 'Entertainment' },
-  health: { icon: '💊', color: '#FF8CC6', label: 'Healthcare' },
-  utilities: { icon: '💡', color: '#FFD93D', label: 'Utilities' },
-  other: { icon: '📝', color: '#6C5CE7', label: 'Other' }
 };
 
 const useStore = create((set, get) => ({
@@ -32,8 +23,8 @@ const useStore = create((set, get) => ({
   carryOverBudget: false,
   monthlyBudget: 0,
   remainingBalance: 0,
-  loading: false,
-  lastBudgetUpdate: null, // Add a timestamp for the last budget update
+  loading: true,
+  lastBudgetUpdate: null,
 
   addTag: async (tagName, color = '#666666', icon = '📝') => {
     if (!tagName || typeof tagName !== 'string') {
@@ -54,7 +45,7 @@ const useStore = create((set, get) => ({
     set(state => ({
       tags: [...state.tags, newTag]
     }));
-    await get().saveToStorage();
+    await get()._persistData(); //  call _persistData
     return newTag;
   },
 
@@ -66,7 +57,7 @@ const useStore = create((set, get) => ({
           : tag
       )
     }));
-    await get().saveToStorage();
+    await get()._persistData(); //  call _persistData
   },
 
   deleteTag: async (tagId) => {
@@ -84,7 +75,7 @@ const useStore = create((set, get) => ({
         tags: state.tags.filter(tag => tag.id !== tagId)
       };
     });
-    await get().saveToStorage();
+    await get()._persistData(); //  call _persistData
   },
 
   getTag: (tagId) => get().tags.find(tag => tag.id === tagId),
@@ -115,7 +106,7 @@ const useStore = create((set, get) => ({
         remainingBalance: get().calculateRemainingBalance(),
       };
     });
-    await get().saveToStorage();
+    await get()._persistData(); //  call _persistData
   },
 
   updateExpense: async (month, expenseId, updatedExpense) => {
@@ -150,7 +141,7 @@ const useStore = create((set, get) => ({
         remainingBalance: get().calculateRemainingBalance(),
       };
     });
-    await get().saveToStorage();
+    await get()._persistData(); //  call _persistData
   },
 
   getExpensesByTag: (tagId) => {
@@ -174,13 +165,13 @@ const useStore = create((set, get) => ({
   },
 
   addBudget: (month, budget) => {
-      
-      set(state => ({
-          budgets: { ...state.budgets, [month]: budget },
-          remainingBalance: get().calculateRemainingBalance(),
-          lastBudgetUpdate: new Date().toISOString(), // Update the timestamp
-      }));
-      get().saveToStorage(); // Save after updating
+
+    set(state => ({
+      budgets: { ...state.budgets, [month]: budget },
+      remainingBalance: get().calculateRemainingBalance(),
+      lastBudgetUpdate: new Date().toISOString(), // Update the timestamp
+    }));
+    get()._persistData(); //  call _persistData
   },
 
   updateBudget: (month, budget) => {
@@ -193,7 +184,7 @@ const useStore = create((set, get) => ({
       remainingBalance: get().calculateRemainingBalance(),
       lastBudgetUpdate: new Date().toISOString()
     }));
-      get().saveToStorage();
+    get()._persistData(); //  call _persistData
   },
 
   removeBudget: (month) => {
@@ -205,7 +196,7 @@ const useStore = create((set, get) => ({
         lastBudgetUpdate: new Date().toISOString()
       };
     });
-    get().saveToStorage();
+    get()._persistData(); //  call _persistData
   },
 
   getBudget: (month) => get().budgets[month] || 0,
@@ -225,7 +216,7 @@ const useStore = create((set, get) => ({
         };
       });
 
-      await get().saveToStorage();
+      await get()._persistData(); //  call _persistData
     } catch (error) {
       console.error('Error deleting expense:', error);
       throw error;
@@ -247,87 +238,185 @@ const useStore = create((set, get) => ({
   setRegion: (region) => set({ region }),
   setCarryOverBudget: (carryOverBudget) => set({ carryOverBudget }),
   setMonthlyBudget: (monthlyBudget) => {
-      if (!isValidPositiveNumber(monthlyBudget)) {
-          console.error('Monthly budget must be a positive number');
-          return;
-      }
-      set({ monthlyBudget })
+    if (!isValidPositiveNumber(monthlyBudget)) {
+      console.error('Monthly budget must be a positive number');
+      return;
+    }
+    set({ monthlyBudget })
   },
 
-    checkAndUpdateBudget: async () => {
-      const now = new Date();
-      const currentMonth = now.toISOString().substring(0, 7);
-      const { lastBudgetUpdate, monthlyBudget, budgets } = get();
+  checkAndUpdateBudget: async () => {
+    const now = new Date();
+    const currentMonth = now.toISOString().substring(0, 7);
+    const { lastBudgetUpdate, monthlyBudget, budgets } = get();
 
-      // Determine if an update is needed
-      let needsUpdate = false;
-      if (!lastBudgetUpdate) {
-          needsUpdate = true; // First run, always update
-      } else {
-          const lastUpdateMonth = new Date(lastBudgetUpdate).toISOString().substring(0, 7);
-          needsUpdate = currentMonth !== lastUpdateMonth; // Update if the month has changed
-      }
+    // Determine if an update is needed
+    let needsUpdate = false;
+    if (!lastBudgetUpdate) {
+      needsUpdate = true; // First run, always update
+    } else {
+      const lastUpdateMonth = new Date(lastBudgetUpdate).toISOString().substring(0, 7);
+      needsUpdate = currentMonth !== lastUpdateMonth; // Update if the month has changed
+    }
 
-        if (needsUpdate) {
-            const existingBudget = budgets[currentMonth] || 0;
-            const newBudget = existingBudget + monthlyBudget; // Add to existing, if any
-            get().addBudget(currentMonth, newBudget); // Use addBudget to handle updates and saving
-        }
-    },
-
+    if (needsUpdate) {
+      const existingBudget = budgets[currentMonth] || 0;
+      const newBudget = existingBudget + monthlyBudget; // Add to existing, if any
+      get().addBudget(currentMonth, newBudget); // Use addBudget to handle updates and saving
+    }
+  },
+    // --- Keep these for manual backup/restore ---
     loadFromStorage: async () => {
-        set({ loading: true });
-        try {
-            const storedData = await AsyncStorage.getItem(STORAGE_KEY);
-            if (storedData) {
-                const parsedData = JSON.parse(storedData);
-                const loadedTags = Array.isArray(parsedData.tags) ? parsedData.tags : [];
-                const loadedMonthlyBudget = parsedData.monthlyBudget !== undefined ? Number(parsedData.monthlyBudget) : 0;
-                set({ ...parsedData, tags: loadedTags, monthlyBudget: loadedMonthlyBudget });
+      set({ loading: true });
+      try {
+        const filePath = `${RNFS.DocumentDirectoryPath}/${STORAGE_KEY}.json`;
+        const fileExists = await RNFS.exists(filePath);
 
-                // Check and update budget after loading
-              await get().checkAndUpdateBudget();
-            } else {
-                const initialTags = Object.entries(defaultTagsConfig).map(([key, config]) => ({
-                    id: uuid.v4(),
-                    name: key,
-                    label: config.label,
-                    color: config.color,
-                    icon: config.icon,
-                    isCustom: false,
-                    createdAt: new Date().toISOString()
-                }));
-                set({ tags: initialTags });
-                await get().saveToStorage(); // Initial save if no data
+        if (fileExists) {
+          const storedData = await RNFS.readFile(filePath, 'utf8');
+          if (storedData) {
+            const parsedData = JSON.parse(storedData);
+
+            // Ensure monthlyBudget is a number
+            if (typeof parsedData.monthlyBudget === 'string') {
+              parsedData.monthlyBudget = Number(parsedData.monthlyBudget);
             }
 
-        } catch (error) {
-            console.error('Failed to load data from storage', error);
-        } finally {
-            set({ loading: false });
+            // Initialize empty objects if they don't exist
+            parsedData.budgets = parsedData.budgets || {};
+            parsedData.expenses = parsedData.expenses || {};
+            parsedData.tags = Array.isArray(parsedData.tags) ? parsedData.tags : [];
+
+            // Update the store state
+            set(state => ({
+              ...state,
+              ...parsedData,
+              loading: false
+            }));
+
+            // Recalculate remaining balance
+            await get().calculateRemainingBalance();
+            await get().checkAndUpdateBudget();
+            return true;
+          }
         }
+        set({ loading: false });
+        return false;
+      } catch (error) {
+        console.error('Failed to load from storage:', error);
+        set({ loading: false });
+        return false;
+      }
     },
 
-  saveToStorage: async () => {
+    saveToStorage: async () => {
+      try {
+        const state = get();
+        const { loading, ...stateToSave } = state;
+        const filePath = `${RNFS.DocumentDirectoryPath}/${STORAGE_KEY}.json`;
+        await RNFS.writeFile(filePath, JSON.stringify(stateToSave), 'utf8');
+      } catch (error) {
+        console.error('Failed to save data to storage', error);
+      }
+    },
+    // --- Automatic Persistence functions ---
+      _persistData: async () => {
     try {
       const state = get();
-      // Exclude 'loading' from being saved
       const { loading, ...stateToSave } = state;
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+      const filePath = `${RNFS.DocumentDirectoryPath}/${STORAGE_KEY}.json`;
+      await RNFS.writeFile(filePath, JSON.stringify(stateToSave), 'utf8');
     } catch (error) {
-      console.error('Failed to save data to storage', error);
+      console.error('Failed to persist data', error);
+    }
+  },
+
+  _loadInitialData: async () => {
+    set({ loading: true });
+    try {
+      // Attempt to read from a file
+      const filePath = `${RNFS.DocumentDirectoryPath}/${STORAGE_KEY}.json`;
+      const fileExists = await RNFS.exists(filePath);
+
+      if (fileExists) {
+        const storedData = await RNFS.readFile(filePath, 'utf8');
+        if (storedData) {
+          const parsedData = JSON.parse(storedData);
+
+           // Check if budgets OR expenses are already set
+          if (Object.keys(parsedData.budgets || {}).length > 0 || Object.keys(parsedData.expenses || {}).length > 0) {
+            const loadedTags = Array.isArray(parsedData.tags) ? parsedData.tags : [];
+            const loadedMonthlyBudget = parsedData.monthlyBudget !== undefined ? Number(parsedData.monthlyBudget) : 0;
+            set({ ...parsedData, tags: loadedTags, monthlyBudget: loadedMonthlyBudget });
+            await get().checkAndUpdateBudget();
+            return; // Exit if data loaded and is not empty
+          }
+        }
+      }
+
+      // If no file, try AsyncStorage (for migration)
+      const storedData = await AsyncStorage.getItem(STORAGE_KEY);
+      if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        const loadedTags = Array.isArray(parsedData.tags) ? parsedData.tags : [];
+        const loadedMonthlyBudget = parsedData.monthlyBudget !== undefined ? Number(parsedData.monthlyBudget) : 0;
+        set({ ...parsedData, tags: loadedTags, monthlyBudget: loadedMonthlyBudget });
+        await get().checkAndUpdateBudget();
+        await get()._persistData(); // *Important*: Save to file after migrating
+        await AsyncStorage.removeItem(STORAGE_KEY); // Remove from AsyncStorage
+      } else {
+            // Use the imported defaultTagsConfig
+            const initialTags = Object.entries(defaultTagsConfig).map(([key, config]) => ({
+                id: uuid.v4(),
+                name: key,
+                label: config.label,
+                color: config.color,
+                icon: config.icon,
+                isCustom: false,
+                createdAt: new Date().toISOString()
+            }));
+            set({ tags: initialTags });
+            await get()._persistData(); // Initial save if no data
+        }
+    } catch (error) {
+      console.error('Failed to load initial data', error);
+      // Fallback to default tags on error
+       const initialTags = Object.entries(defaultTagsConfig).map(([key, config]) => ({
+                id: uuid.v4(),
+                name: key,
+                label: config.label,
+                color: config.color,
+                icon: config.icon,
+                isCustom: false,
+                createdAt: new Date().toISOString()
+            }));
+      set({tags: initialTags});
+      await get()._persistData();
+    } finally {
+        const state = get();
+        if (!state.budgets || Object.keys(state.budgets).length === 0) {
+        // If no budget data has been loaded, only then set the defaults
+        const initialTags = Object.entries(defaultTagsConfig).map(([key, config]) => ({
+          id: uuid.v4(),
+          name: key,
+          label: config.label,
+          color: config.color,
+          icon: config.icon,
+          isCustom: false,
+          createdAt: new Date().toISOString()
+        }));
+        set({ tags: initialTags });
+        await get()._persistData();
+        }
+        set({ loading: false });
     }
   },
 
   exportData: async () => {
     try {
-      const state = await AsyncStorage.getItem(STORAGE_KEY);
-      if (!state) {
-        console.log('No data to export.');
-        return;
-      }
-
-      const jsonData = JSON.stringify(JSON.parse(state), null, 2);
+      const state = get();
+      const { loading, ...stateToSave } = state; // Don't export the loading state
+      const jsonData = JSON.stringify(stateToSave, null, 2);
       const fileName = `Runor_budget_backup_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
       const filePath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
 
@@ -348,10 +437,24 @@ const useStore = create((set, get) => ({
       const importedData = JSON.parse(fileContent);
 
       if (importedData.budgets && typeof importedData.budgets !== 'object') {
-          throw new Error("Invalid 'budgets' data in the imported file.");
+        throw new Error("Invalid 'budgets' data in the imported file.");
       }
       if (importedData.expenses && typeof importedData.expenses !== 'object') {
-          throw new Error("Invalid 'expenses' data in the imported file.");
+        throw new Error("Invalid 'expenses' data in the imported file.");
+      }
+      // Basic tags schema validation
+      if (importedData.tags && !Array.isArray(importedData.tags)) {
+            throw new Error("Invalid 'tags' data.  Expected an array.");
+      }
+      if (importedData.tags) {
+          for (const tag of importedData.tags) {
+              if (!tag.id || typeof tag.id !== 'string') {
+                throw new Error("Invalid tag: 'id' must be a string.");
+              }
+              if (!tag.name || typeof tag.name !== 'string') {
+                throw new Error("Invalid tag: 'name' must be a string.");
+              }
+          }
       }
       // Merge the imported data, giving priority to the imported values
       set(state => ({
@@ -359,7 +462,7 @@ const useStore = create((set, get) => ({
         ...importedData,
       }));
       console.log("Successfully imported", result.name);
-      get().saveToStorage();
+      await get()._persistData();
 
     } catch (err) {
       if (DocumentPicker.isCancel(err)) {
@@ -396,6 +499,8 @@ const useStore = create((set, get) => ({
 // --- AppState Listener (Outside the store) ---
 
 let appStateSubscription;
+let lastSaveTimestamp = Date.now();
+const SAVE_THROTTLE_MS = 1000; // Throttle saves to once per second
 
 const initializeAppStateListener = () => {
   if (appStateSubscription) {
@@ -403,18 +508,41 @@ const initializeAppStateListener = () => {
   }
 
   appStateSubscription = AppState.addEventListener('change', nextAppState => {
+    const store = useStore.getState();
+    
     if (nextAppState === 'active') {
-      useStore.getState().checkAndUpdateBudget();
+      // When app becomes active, load latest data and check budget
+      store._loadInitialData();
+      store.checkAndUpdateBudget();
+    } else if (nextAppState === 'background' || nextAppState === 'inactive') {
+      // Save state when app goes to background or becomes inactive
+      const currentTime = Date.now();
+      if (currentTime - lastSaveTimestamp >= SAVE_THROTTLE_MS) {
+        store._persistData();
+        lastSaveTimestamp = currentTime;
+      }
     }
   });
 };
 
+// Subscribe to store changes for automatic saving
+useStore.subscribe((state, prevState) => {
+  // Only save if actual data changed (ignore loading state changes)
+  const { loading: currentLoading, ...currentState } = state;
+  const { loading: prevLoading, ...prevStateData } = prevState;
+  
+  if (JSON.stringify(currentState) !== JSON.stringify(prevStateData)) {
+    const currentTime = Date.now();
+    if (currentTime - lastSaveTimestamp >= SAVE_THROTTLE_MS) {
+      useStore.getState()._persistData();
+      lastSaveTimestamp = currentTime;
+    }
+  }
+});
 
 export const initializeBudgetUpdater = () => {
-    initializeAppStateListener();
-    useStore.getState().loadFromStorage().then(() => {  // load and *then* check
-      useStore.getState().checkAndUpdateBudget();
-    });
+  initializeAppStateListener();
+  useStore.getState()._loadInitialData();
 };
 
 export default useStore;

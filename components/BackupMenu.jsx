@@ -17,6 +17,8 @@ import { useTheme } from '@react-navigation/native';
 import { Surface, Divider } from 'react-native-paper';
 import { Alert } from 'react-native';
 
+const STORAGE_KEY = '@budgetAppData';
+
 const BackupMenu = ({ visible, onClose }) => {
   const { exportData, loadFromStorage } = useStore();
   const [backupPath, setBackupPath] = useState('');
@@ -46,7 +48,21 @@ const BackupMenu = ({ visible, onClose }) => {
           const fileContent = await RNFS.readFile(results[0].uri, 'utf8');
           const parsedData = JSON.parse(fileContent);
 
-          await AsyncStorage.setItem('@budgetAppData', JSON.stringify(parsedData));
+          // Validate the imported data structure
+          if (!parsedData || typeof parsedData !== 'object') {
+            throw new Error('Invalid backup file format');
+          }
+
+          // Convert monthlyBudget to number if it's a string
+          if (typeof parsedData.monthlyBudget === 'string') {
+            parsedData.monthlyBudget = Number(parsedData.monthlyBudget);
+          }
+
+          // Save to file system instead of AsyncStorage
+          const filePath = `${RNFS.DocumentDirectoryPath}/${STORAGE_KEY}.json`;
+          await RNFS.writeFile(filePath, JSON.stringify(parsedData), 'utf8');
+          
+          // Force reload the data
           await loadFromStorage();
           Alert.alert('Success', 'Data imported successfully.');
         }
@@ -55,7 +71,7 @@ const BackupMenu = ({ visible, onClose }) => {
           console.log('User cancelled the import process');
         } else {
           console.error('Error importing data:', err);
-          Alert.alert('Error', 'Failed to import data.');
+          Alert.alert('Error', 'Failed to import data. Please make sure the backup file is valid.');
         }
       }
     };
